@@ -173,6 +173,7 @@
     const el = document.getElementById('roster-list');
     const curMonth = monthKey(new Date());
     const attStats = await computeAttendanceStats();
+    const groupsList = await getGroups();
     if(list.length===0){
       el.innerHTML = '<div class="empty-hint">Список пуст. Добавь первого ученика ниже — по одному или сразу списком.</div>';
       return;
@@ -200,7 +201,9 @@
           <span>${r.weight?r.weight+' кг':''}</span>
           <span>${r.kyu||'Без пояса'}</span>
           ${r.rank ? `<span>Разряд: ${escapeHtml(r.rank)}</span>` : ''}
-          ${r.trainingGroup ? `<span>Группа: ${escapeHtml(r.trainingGroup)}</span>` : ''}
+          <span class="quick-group-wrap" onclick="event.stopPropagation()">
+            <select class="quick-group" data-i="${i}" title="Быстрая смена группы">${groupOptionsHtmlSync(groupsList, r.trainingGroup)}</select>
+          </span>
           ${r.playerNumber ? `<span>№${escapeHtml(r.playerNumber)}</span>` : ''}
           <span>${r.parentPhone||''}</span>
           <span>${certBadge(r.medCert)}</span>
@@ -237,7 +240,9 @@
           <div class="row3">
             <div><label>Свидетельство о рождении</label><input type="text" class="e-birthcert" value="${r.birthCertificate||''}" placeholder="номер / есть / отсутствует"></div>
             <div><label>Мед. справка</label><input type="text" class="e-cert" value="${r.medCert||''}" placeholder="дата или статус"></div>
-            <div><label>Группа / тренировки</label><input type="text" class="e-group" value="${r.trainingGroup||''}" placeholder="напр. 9-12 лет"></div>
+            <div><label>Группа (по возрасту)</label>
+              <select class="e-group" data-auto-set="${r.trainingGroup ? '0' : '1'}">${groupOptionsHtmlSync(groupsList, r.trainingGroup || matchGroupByAge(groupsList, age))}</select>
+            </div>
           </div>
           <div class="paid-toggle">
             <div class="switch ${paid?'on':''}" data-sw="${i}"></div>
@@ -314,6 +319,17 @@
       });
     });
 
+    el.querySelectorAll('.quick-group').forEach(sel=>{
+      sel.addEventListener('change', async ()=>{
+        const i = Number(sel.dataset.i);
+        const cur = await getRoster();
+        if(!cur[i]) return;
+        cur[i].trainingGroup = sel.value;
+        cur[i].updatedAt = new Date().toISOString();
+        await setRoster(cur);
+        try{ renderSessions(); }catch(e){}
+      });
+    });
     el.querySelectorAll('.top').forEach(t=>{
       t.addEventListener('click', (ev)=>{
         if(ev.target.classList.contains('del')) return;
@@ -325,6 +341,7 @@
     el.querySelectorAll('[data-pdf]').forEach(b=>{
       b.addEventListener('click', async (ev)=>{
         ev.stopPropagation();
+        if(window.ProFeatures && !window.ProFeatures.requirePro('Статистика и отчёты')) return;
         const r = list[Number(b.dataset.pdf)];
         const attStats = await computeAttendanceStats();
         const html = await buildStudentReportHtml(r, attStats[r.name]);
@@ -380,6 +397,24 @@
         editingIndex = i;
         renderRoster();
       });
+    });
+    el.querySelectorAll('.e-birth').forEach(inp=>{
+      inp.addEventListener('change', async ()=>{
+        const box = inp.closest('.edit-box');
+        const groupSel = box?.querySelector('.e-group');
+        if(!groupSel) return;
+        // Если группа ещё не была выбрана/сохранена вручную (autoSet=1) —
+        // подставляем её сразу по новой дате рождения, не дожидаясь
+        // переоткрытия карточки.
+        if(groupSel.dataset.autoSet !== '1') return;
+        const groupsList = await getGroups();
+        const matched = matchGroupByAge(groupsList, ageFromBirth(inp.value));
+        groupSel.innerHTML = groupOptionsHtmlSync(groupsList, matched);
+        groupSel.dataset.autoSet = '1';
+      });
+    });
+    el.querySelectorAll('.e-group').forEach(sel=>{
+      sel.addEventListener('change', ()=>{ sel.dataset.autoSet = '0'; });
     });
     el.querySelectorAll('.e-save').forEach(b=>{
       b.addEventListener('click', async ()=>{
@@ -440,11 +475,25 @@
     });
   }
 
+  document.getElementById('clear-roster').addEventListener('click', async ()=>{
+    const list = await getRoster();
+    if(list.length===0) return;
+    if(!confirm(`Удалить ВСЕХ учеников (${list.length})? Это действие нельзя отменить.`)) return;
+    if(!confirm('Точно удалить? Отметки посещаемости в уже сохранённых тренировках останутся, но привязать их к именам будет нельзя.')) return;
+    await setRoster([]);
+    await renderRoster();
+    try{ await exportAllData(true); }catch(e){}
+  });
+
   document.getElementById('add-name').addEventListener('click', async ()=>{
     const nameEl = document.getElementById('new-name');
     const name = nameEl.value.trim();
     if(!name) return;
     const list = await getRoster();
+    if(window.ProFeatures && list.length >= window.ProFeatures.limits.maxAthletes && !window.ProFeatures.isPro){
+      window.ProFeatures.requirePro('Больше учеников');
+      return;
+    }
     list.push({id:'',name, birthDate:'', weight:'', kyu:'Без пояса', medCert:'', parentPhone:'', rating:'', paid:{}, createdAt:new Date().toISOString()});
     await setRoster(list);
     nameEl.value='';
@@ -457,6 +506,13 @@
     const names = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
     if(names.length===0) return;
     const list = await getRoster();
+    const pro = window.ProFeatures;
+    const room = pro && !pro.isPro ? Math.max(0, pro.limits.maxAthletes - list.length) : names.length;
+    if(pro && !pro.isPro && room < names.length){
+      pro.requirePro('Больше учеников');
+      if(room === 0) return;
+      names.length = room;
+    }
     names.forEach(name=> list.push({id:'',name, birthDate:'', weight:'', kyu:'Без пояса', medCert:'', parentPhone:'', rating:'', paid:{}, createdAt:new Date().toISOString()}));
     await setRoster(list);
     ta.value='';
@@ -464,3 +520,155 @@
     renderSessions();
   });
 
+
+
+  // ================= EXCEL / CSV IMPORT =================
+  (function initExcelImport(){
+    const btn = document.getElementById('excel-import-btn');
+    const input = document.getElementById('excel-file');
+    if(!btn || !input) return;
+
+    const norm = v => String(v ?? '').trim().toLowerCase()
+      .replace(/ё/g,'е').replace(/[\s_\-./]+/g,'');
+    const get = (row, names) => {
+      const wanted = names.map(norm);
+      for(const key of Object.keys(row || {})){
+        if(wanted.includes(norm(key))) return row[key];
+      }
+      return '';
+    };
+    const asText = v => {
+      if(v == null) return '';
+      if(v instanceof Date) return v.toISOString().slice(0,10);
+      if(typeof v === 'number') return String(v).replace(/\.0+$/,'');
+      return String(v).trim();
+    };
+    const excelDate = v => {
+      if(v == null || v === '') return '';
+      if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+      const t = String(v).trim();
+      const m = t.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+      if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+      if(/^\d+(\.\d+)?$/.test(t)){
+        const n = Number(t);
+        if(n > 20000 && n < 60000){
+          const d = new Date(Date.UTC(1899,11,30) + n*86400000);
+          return d.toISOString().slice(0,10);
+        }
+      }
+      if(/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+      // Что угодно ещё (прочерк "-", "нет данных", случайный текст) — это не
+      // дата. Раньше такой мусор сохранялся как есть и потом ломал поле
+      // <input type="date"> (браузер ругался в консоли и не показывал дату).
+      return '';
+    };
+    const parseCSV = text => {
+      const rows=[]; let row=[], cell='', quoted=false;
+      for(let i=0;i<text.length;i++){
+        const c=text[i], n=text[i+1];
+        if(c==='"' && quoted && n==='"'){ cell+='"'; i++; continue; }
+        if(c==='"'){ quoted=!quoted; continue; }
+        if(!quoted && (c===',' || c===';')){ row.push(cell); cell=''; continue; }
+        if(!quoted && (c==='\n' || c==='\r')){
+          if(c==='\r' && n==='\n') i++;
+          row.push(cell); cell='';
+          if(row.some(x=>String(x).trim()!=='')) rows.push(row);
+          row=[]; continue;
+        }
+        cell+=c;
+      }
+      row.push(cell); if(row.some(x=>String(x).trim()!=='')) rows.push(row);
+      if(!rows.length) return [];
+      const headers=rows.shift();
+      return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[String(h||'').trim(), r[i] ?? ''])));
+    };
+    const loadXLSX = () => new Promise((resolve,reject)=>{
+      if(window.XLSX) return resolve(window.XLSX);
+      const existing=document.querySelector('script[data-judo-xlsx]');
+      if(existing){ existing.addEventListener('load',()=>resolve(window.XLSX),{once:true}); existing.addEventListener('error',()=>reject(new Error('Не удалось загрузить модуль Excel.')),{once:true}); return; }
+      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.async=true; sc.dataset.judoXlsx='1';
+      sc.onload=()=>window.XLSX?resolve(window.XLSX):reject(new Error('Модуль Excel загрузился без XLSX.'));
+      sc.onerror=()=>reject(new Error('Не удалось загрузить модуль Excel. Проверьте интернет и повторите.'));
+      document.head.appendChild(sc);
+    });
+
+    function rowToAthlete(row){
+      const surname=asText(get(row,['Фамилия','Surname','Last Name']));
+      const first=asText(get(row,['Имя','Name','First Name']));
+      const patronymic=asText(get(row,['Отчество','Patronymic','Middle Name']));
+      let name=asText(get(row,['ФИО','Фио','Фамилия Имя Отчество','Ученик','Спортсмен']));
+      if(!name) name=[surname,first,patronymic].filter(Boolean).join(' ');
+      if(!name) return null;
+      const birthDate=excelDate(get(row,['Дата Рождения','Дата рождения','ДатаРождения','Birth Date','DOB']));
+      const age=asText(get(row,['Полных лет','Возраст','Лет','Age']));
+      const weight=asText(get(row,['Вес','Вес кг','Вес, кг','Weight']));
+      const rank=asText(get(row,['Разряд','Спортивный разряд','Rank']));
+      const kyu=asText(get(row,['Пояс по Дзюдо','Пояс по дзюдо','Пояс','Кю','Kyu'])) || 'Без пояса';
+      const birthCertificate=asText(get(row,['Свидетельство о рождении','Свидетельство','Birth Certificate']));
+      const medCert=asText(get(row,['Мед справка','Мед. справка','Медсправка','Медицинская справка','Medical Certificate']));
+      const playerNumber=asText(get(row,['Номер Игрока','Номер игрока','Номер','Player Number','ID']));
+      const parentPhone=asText(get(row,['Телефон','Телефон родителей','Телефон родителя','Phone']));
+      const responsiblePerson=asText(get(row,['Ответственное лицо','Родитель','Ответственный','Parent']));
+      const trainingGroup=asText(get(row,['Тренировки','Группа','Группа/тренировки','Training','Group']));
+      const notes=asText(get(row,['Примечание','Примечания','Заметки','Notes','Комментарий']));
+      return {id:(typeof uid==='function'?uid():Date.now().toString(36)+Math.random().toString(36).slice(2,7)),name,birthDate,age,weight,rank,kyu,birthCertificate,medCert,playerNumber,parentPhone,responsiblePerson,trainingGroup,notes,paid:{},history:[],createdAt:new Date().toISOString(),importedFrom:'excel'};
+    }
+
+    async function importRows(rows, fileName){
+      const imported=rows.map(rowToAthlete).filter(Boolean);
+      if(!imported.length){ alert('Не найдено ни одной строки с ФИО. Проверьте заголовок «ФИО» или отдельные «Фамилия / Имя / Отчество».'); return; }
+      const groupsList = await getGroups();
+      const list=await getRoster();
+      const existingByPlayer=new Map(list.filter(x=>x.playerNumber).map(x=>[String(x.playerNumber).trim(),x]));
+      const existingByName=new Map(list.map(x=>[norm(x.name),x]));
+      let added=0, updated=0;
+      const pro = window.ProFeatures;
+      let blockedByLimit=false;
+      for(const item of imported){
+        const existing=(item.playerNumber && existingByPlayer.get(item.playerNumber)) || existingByName.get(norm(item.name));
+        if(existing){
+          // Если в файле группа не указана — не затираем группу, уже
+          // выставленную у ученика вручную (например, если тренер перевёл
+          // его в другую возрастную группу).
+          if(!item.trainingGroup) delete item.trainingGroup;
+          Object.assign(existing,item,{id:existing.id || item.id,updatedAt:new Date().toISOString(),importedFrom:'excel'});
+          updated++;
+        } else {
+          if(pro && !pro.isPro && list.length >= pro.limits.maxAthletes){ blockedByLimit=true; continue; }
+          // Новый ученик — если группа не указана в файле, подставляем её
+          // автоматически по дате рождения, как и при ручном добавлении.
+          if(!item.trainingGroup && item.birthDate){
+            item.trainingGroup = matchGroupByAge(groupsList, ageFromBirth(item.birthDate)) || '';
+          }
+          list.push(item); added++;
+        }
+      }
+      await setRoster(list);
+      await renderRoster();
+      try{ renderSessions(); }catch(e){}
+      if(blockedByLimit && pro) pro.requirePro('Больше учеников');
+      alert(`Excel импортирован: ${added} добавлено, ${updated} обновлено.\nФайл: ${fileName}`);
+    }
+
+    btn.addEventListener('click',()=>{
+      if(window.ProFeatures && !window.ProFeatures.requirePro('Импорт из Excel')) return;
+      input.click();
+    });
+    input.addEventListener('change',async e=>{
+      const file=e.target.files?.[0]; if(!file) return;
+      try{
+        const ext=file.name.toLowerCase().split('.').pop();
+        let rows=[];
+        if(ext==='csv') rows=parseCSV(await file.text());
+        else {
+          const XLSX=await loadXLSX();
+          const data=await file.arrayBuffer();
+          const wb=XLSX.read(data,{type:'array',cellDates:true});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
+        }
+        await importRows(rows,file.name);
+      }catch(err){ console.error('Excel import failed',err); alert('Не удалось прочитать файл Excel.\n\n'+(err?.message||err)); }
+      finally{ input.value=''; }
+    });
+  })();

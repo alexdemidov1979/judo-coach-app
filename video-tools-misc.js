@@ -114,6 +114,33 @@
       if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
     });
 
+    async function saveVideoToPhone(blob, fileName){
+      const safeName = String(fileName || 'razbor-video.webm').replace(/[^a-zA-Z0-9а-яА-Я._-]+/g,'_');
+      // Native Capacitor: save the produced video into the app's Documents directory.
+      try{
+        const cap=window.Capacitor;
+        const fs=cap?.Plugins?.Filesystem;
+        if(cap?.isNativePlatform?.() && fs){
+          const bytes=new Uint8Array(await blob.arrayBuffer());
+          let binary=''; const chunk=0x8000;
+          for(let i=0;i<bytes.length;i+=chunk) binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+          const base64=btoa(binary);
+          const result=await fs.writeFile({path:safeName,data:base64,directory:'DOCUMENTS',recursive:true});
+          const uri=await fs.getUri({path:safeName,directory:'DOCUMENTS'});
+          // Share sheet lets the user save to Gallery/Files/Downloads depending on device.
+          const share=cap?.Plugins?.Share;
+          if(share?.share && uri?.uri){
+            try{ await share.share({title:'Разбор схватки',text:'Judo Coach — видеоразбор',url:uri.uri,dialogTitle:'Сохранить видео на телефоне'}); }catch(e){}
+          }
+          return {native:true,uri:uri?.uri||result?.uri||''};
+        }
+      }catch(e){ console.warn('Native video save failed, using browser download:',e); }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=safeName; a.rel='noopener'; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+      return {native:false,url};
+    }
+
     async function startRecording(){
       try{
         micStream = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -134,8 +161,15 @@
         resultVideo.src = url;
         downloadLink.href = url;
         downloadLink.download = `razbor-${new Date().toISOString().slice(0,10)}.webm`;
+        downloadLink.textContent = '📱 Сохранить видео на телефон';
+        downloadLink.onclick = async (ev)=>{
+          ev.preventDefault();
+          statusEl.textContent='Сохраняем видео на телефон…';
+          const saved=await saveVideoToPhone(blob, downloadLink.download);
+          statusEl.textContent=saved.native ? 'Видео сохранено в документы телефона. При необходимости выберите Галерею/Файлы в окне сохранения.' : 'Видео сохранено через загрузку браузера.';
+        };
         resultBox.style.display = 'block';
-        statusEl.textContent = 'Готово! Видео можно скачать или сохранить в галерею.';
+        statusEl.textContent = 'Готово! Нажмите «Сохранить видео на телефон».';
         if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
       };
       video.currentTime = 0;
@@ -181,14 +215,29 @@
     }
   }
 
+  // Compatibility: older builds called renderDemidovCard during startup,
+  // but the card was removed from the current layout. Keep a safe no-op/visibility
+  // implementation so startup never stops with ReferenceError.
+  window.renderDemidovCard = function renderDemidovCard(state){
+    const el = document.getElementById('telegram-channel-link');
+    if(!el) return;
+    const user = window.JudoFirebase?.getCurrentUser?.();
+    const isAdmin = String(user?.email||'').toLowerCase() === 'peihyei@gmail.com';
+    el.style.display = isAdmin ? 'block' : 'none';
+    if(isAdmin){
+      el.href = 'https://t.me/+WcJ5fH7Xwd4yZWEy';
+    }
+  };
+
   // ---------- init ----------
   (async function init(){
     renderDow();
-    renderDemidovCard('loggedout');
+    window.renderDemidovCard?.('loggedout');
     await ensureLibrarySeedV2();
     await ensureLibrarySeedV3();
     await renderCalendar();
     await renderRoster();
+    try{ await renderGroupsManager(); }catch(e){}
     await selectDate(new Date());
     checkBackupReminder();
     await renderToday();

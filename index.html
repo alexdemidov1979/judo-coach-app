@@ -32,19 +32,70 @@
     </div>
   </div>
 
-  <!-- Firebase Authentication: main screen -->
-  <section class="card" id="main-auth-card" style="margin:12px 16px 12px;padding:14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <div style="min-width:0;">
-        <div style="font-weight:700;font-size:16px;">☁️ Judo Coach Cloud</div>
-        <div id="main-auth-status" style="font-size:12.5px;color:var(--dim);margin-top:4px;">Войдите через Google — аккаунт будет защищён Firebase</div>
+  <!-- Firebase Authentication: email/password + Club Cloud -->
+  <section class="card jc-auth-card" id="main-auth-card" style="margin:12px 16px 12px;padding:14px;">
+    <div class="jc-auth-head">
+      <div>
+        <div style="font-weight:800;font-size:17px;">☁️ Judo Coach Cloud</div>
+        <div id="main-auth-status" class="jc-auth-status">Вход и регистрация · email + пароль</div>
       </div>
-      <button class="btn small" id="main-firebase-signin" type="button" style="white-space:nowrap;">Войти</button>
+      <span id="main-auth-role" class="jc-role-badge" style="display:none;" hidden></span>
     </div>
-    <div id="main-auth-user" style="display:none;margin-top:10px;font-size:12.5px;"></div>
-    <div id="main-auth-actions" style="display:none;gap:8px;margin-top:10px;">
-      <button class="btn small" id="main-firebase-sync" type="button">☁️ Синхронизировать</button>
-      <button class="btn ghost small" id="main-firebase-signout" type="button">Выйти</button>
+
+    <div id="auth-logged-out">
+      <div class="jc-auth-tabs">
+        <button type="button" class="jc-auth-tab active" id="auth-tab-login">Войти</button>
+        <button type="button" class="jc-auth-tab" id="auth-tab-register">Создать аккаунт</button>
+      </div>
+
+      <form id="auth-login-form" class="jc-auth-form">
+        <label>Электронная почта
+          <input id="auth-login-email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <label>Пароль
+          <input id="auth-login-password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••">
+        </label>
+        <button class="btn" type="submit">🔐 Войти</button>
+        <button class="jc-link-btn" type="button" id="auth-reset-password">Забыли пароль?</button>
+      </form>
+
+      <form id="auth-register-form" class="jc-auth-form" style="display:none;">
+        <label>Ваше имя
+          <input id="auth-register-name" type="text" autocomplete="name" required placeholder="Имя и фамилия">
+        </label>
+        <label>Электронная почта
+          <input id="auth-register-email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <label>Пароль
+          <input id="auth-register-password" type="password" autocomplete="new-password" required minlength="6" placeholder="Не менее 6 символов">
+        </label>
+        <label>Повторите пароль
+          <input id="auth-register-password2" type="password" autocomplete="new-password" required minlength="6" placeholder="Повторите пароль">
+        </label>
+
+        <button class="btn" type="submit">🚀 Создать аккаунт</button>
+        <div class="jc-auth-status">Данные каждого аккаунта хранятся отдельно и видны только ему.</div>
+      </form>
+
+      <div id="auth-message" class="jc-auth-message" role="status" aria-live="polite"></div>
+    </div>
+
+    <div id="auth-logged-in" style="display:none;">
+      <div id="main-auth-user" class="jc-auth-user"></div>
+      <div id="main-auth-club" class="jc-auth-status"></div>
+      <div id="main-auth-actions" class="jc-auth-actions">
+        <button class="btn small" id="main-firebase-sync" type="button">☁️ Синхронизировать</button>
+        <button class="btn ghost small" id="main-firebase-signout" type="button">Выйти</button>
+      </div>
+      <div id="auth-migration-password" class="jc-first-club" style="display:none;margin-top:10px;">
+        <div class="jc-first-club-title">🔑 Завершить переход на email + пароль</div>
+        <div class="jc-auth-status">Если этот аккаунт раньше входил через Google, можно один раз задать пароль. После этого вход в Judo Coach будет выполняться только по email и паролю.</div>
+        <div class="jc-auth-form" style="margin-top:8px;">
+          <input id="auth-migration-password-input" type="password" minlength="6" placeholder="Новый пароль">
+          <input id="auth-migration-password2" type="password" minlength="6" placeholder="Повторите пароль">
+          <button class="btn small" id="auth-migration-password-btn" type="button">Сохранить пароль</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -58,7 +109,7 @@
   <div class="offline-note">Данные хранятся локально на этом телефоне и работают без интернета. При каждом нажатии «Сохранить день» в «Загрузки» автоматически добавляется файл-копия — можно почистить старые вручную, когда накопится много.</div>
 
   <div class="card" id="cloud-card" style="margin:0 16px 12px;">
-    <h3 class="section-title">☁️ Club Cloud · Firebase</h3>
+    <h3 class="section-title">☁️ Облако · Yandex Cloud</h3>
     <div id="cloud-setup" style="display:none;"></div>
     <div id="cloud-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
       <button class="btn small" id="firebase-signin" style="display:none;">🔐 Войти в Judo Coach</button>
@@ -66,9 +117,9 @@
         <div id="cloud-account" style="font-size:13px;font-weight:600;"></div>
         <div id="cloud-status" style="font-size:12.5px;color:var(--dim);">Не синхронизировано</div>
         <div id="cloud-sync-badge" style="font-size:12px;color:var(--dim);">⚪ Локальный кэш</div>
-        <div style="font-size:12.5px;color:var(--dim);">Личные данные пользователя хранятся в Firebase Cloud Firestore и привязаны к его Firebase UID. Локальная копия используется только как офлайн-кэш. Google Drive для данных приложения больше не используется.</div>
+        <div style="font-size:12.5px;color:var(--dim);">Личные данные пользователя хранятся на сервере Yandex Cloud и привязаны к его аккаунту. Локальная копия используется только как офлайн-кэш.</div>
         <button class="btn small" id="firebase-upload">☁️⬆️ Синхронизировать сейчас</button>
-        <button class="btn ghost small" id="firebase-download">☁️⬇️ Загрузить из Firebase</button>
+        <button class="btn ghost small" id="firebase-download">☁️⬇️ Загрузить с сервера</button>
         <button class="btn ghost small" id="firebase-signout">🚪 Выйти из аккаунта</button>
       </div>
     </div>
@@ -98,6 +149,7 @@
 
 <div class="tabs legacy-tabs">
     <div class="tab active" data-tab="today">Сегодня</div>
+    <div class="tab" data-tab="ai-coach">🤖 ИИ-тренер</div>
     <div class="tab" data-tab="rules-pdf">Правила ФДР</div>
     <div class="tab" data-tab="timers">Таймеры</div>
     <div class="tab" data-tab="roster">Ученики</div>
@@ -145,6 +197,7 @@
       <div class="actions">
         <button class="btn" id="add-session">➕ Добавить тренировку на этот день</button>
         <button class="btn secondary" id="save-day">Сохранить день</button>
+        <button class="btn danger" id="clear-day">🗑 Очистить день</button>
         <button class="btn ghost" id="copy-next-week">📅 Скопировать на след. неделю</button>
         <button class="btn ghost" id="print-day-pdf">🖨️ Печать / PDF (этот день)</button>
         </div>
@@ -178,6 +231,47 @@
     </div>
   </div>
 
+  <!-- ИИ-ТРЕНЕР (YandexGPT через Yandex Cloud Functions) -->
+  <div class="panel" id="panel-ai-coach">
+    <div class="card" style="margin-bottom:12px;">
+      <h3 class="section-title">🤖 ИИ-тренер</h3>
+      <div class="empty-hint" style="margin-bottom:10px;">
+        Помогает составлять и улучшать тренировки, подбирать техники и планировать сезон.
+        Не заменяет официальные правила ФДР/IJF — при сомнениях всегда проверяйте первоисточник.
+      </div>
+      <div id="ai-mode-buttons" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div><label>Группа</label><select id="ai-ctx-group"></select></div>
+        <div><label>Длительность (мин)</label><input type="number" id="ai-ctx-duration" placeholder="60" min="10" max="180"></div>
+        <div><label>Цель занятия</label><input type="text" id="ai-ctx-goal" placeholder="например: техника бросков"></div>
+        <div><label>Инвентарь</label><input type="text" id="ai-ctx-equipment" placeholder="маты, конусы, скакалки"></div>
+        <div style="grid-column:1/-1;">
+          <label>Этап сезона</label>
+          <select id="ai-ctx-season">
+            <option value="">— не указан —</option>
+            <option value="подготовительный">Подготовительный</option>
+            <option value="предсоревновательный">Предсоревновательный</option>
+            <option value="соревновательный">Соревновательный</option>
+            <option value="переходный">Переходный</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 class="section-title" style="margin:0;">Диалог</h3>
+        <button type="button" class="btn small ghost" id="ai-new-chat">🆕 Новый чат</button>
+      </div>
+      <div id="ai-chat-messages" class="ai-chat-messages"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <textarea id="ai-chat-input" rows="2" placeholder="Напишите вопрос или уточнение…" style="flex:1;"></textarea>
+        <button type="button" class="btn gold" id="ai-send-btn">Отправить</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ПРАВИЛА ФДР (полный PDF) -->
   <div class="panel" id="panel-rules-pdf">
     <div class="card" style="padding:10px;">
@@ -185,8 +279,12 @@
         <h3 class="section-title" style="margin:0;">Судейские правила МФД — полный текст</h3>
         <a href="pravila-mfd.pdf" target="_blank" class="btn small ghost" style="text-decoration:none;">↗ Открыть отдельно</a>
       </div>
-      <div id="rules-pdf-holder" style="width:100%;height:72vh;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2,var(--card));"></div>
-      <div class="empty-hint" style="margin-top:8px;">Если документ не отображается — убедитесь, что файл <code>pravila-mfd.pdf</code> загружен в корень репозитория рядом с index.html.</div>
+      <div id="rules-pdf-holder" style="width:100%;min-height:72vh;border-radius:10px;overflow:auto;border:1px solid var(--line);background:var(--surface-2,var(--card));"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;">
+        <button id="rules-pdf-prev" class="btn small secondary" type="button">← Назад</button>
+        <span id="rules-pdf-page-label" class="empty-hint" style="margin:0;">Загрузка…</span>
+        <button id="rules-pdf-next" class="btn small secondary" type="button">Вперёд →</button>
+      </div>
     </div>
   </div>
 
@@ -278,8 +376,12 @@
 
   <!-- ROSTER -->
   <div class="panel" id="panel-roster">
+    <div class="card" id="groups-manager" style="margin-bottom:12px;"></div>
     <div class="card">
-      <h3 class="section-title">Список учеников</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 class="section-title" style="margin:0;">Список учеников</h3>
+        <button class="btn danger small" id="clear-roster">🗑 Очистить список</button>
+      </div>
       <div id="roster-list"></div>
       <div class="add-row">
         <input type="text" id="new-name" placeholder="Имя ученика">
@@ -443,6 +545,11 @@
 
   <!-- ЕЩЁ -->
   <div class="panel" id="panel-more">
+    <div class="card" id="pro-status-card" style="margin-bottom:12px;">
+      <h3 class="section-title">Версия приложения</h3>
+      <div id="pro-status-text" style="margin:6px 0 10px;font-size:14px;"></div>
+      <button class="btn small gold" id="pro-status-btn">Подробнее о полной версии</button>
+    </div>
     <div class="more-subnav">
       <div class="chip" data-subtab="timers">⏱ Таймеры</div>
       <div class="chip" data-subtab="exams">🎓 Экзамены</div>
@@ -464,7 +571,7 @@
     <button id="vr-close" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">✕</button>
   </div>
   <div id="vr-upload-screen" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;">
-    <div style="color:#ccc;font-size:14px;max-width:340px;">Загрузите видео с телефона — можно рисовать поверх кадра (стрелки, круги, линии) и надиктовывать голосовой комментарий. Готовый разбор сохранится как новый видеофайл.</div>
+    <div style="color:#ccc;font-size:14px;max-width:340px;">Загрузите видео с телефона — можно рисовать поверх кадра (стрелки, круги, линии) и надиктовывать голосовой комментарий. Готовый разбор сохранится как новый видеофайл на телефоне.</div>
     <input type="file" id="vr-file-input" accept="video/*" style="color:#fff;">
   </div>
   <div id="vr-work-screen" style="display:none;flex:1;flex-direction:column;">
@@ -536,7 +643,9 @@
   <div class="bn-item" data-nav="more" role="button" tabindex="0" aria-label="Ещё"><span class="bn-ic" aria-hidden="true">⚙</span><span>Ещё</span></div>
 </div>
 
+<script src="pro-features.js"></script>
 <script src="core-data.js"></script>
+<script src="groups.js"></script>
 <script src="roster.js"></script>
 <script src="athlete-core.js"></script>
 <script src="library-ui.js"></script>
@@ -547,9 +656,9 @@
 <script src="stats-competitions.js"></script>
 <script src="constructor-timers.js"></script>
 <script src="backup-sync.js"></script>
-<script type="module" src="firebase-init.js"></script>
+<script src="yandex-backend.js"></script>
 <script src="navigation-ui.js"></script>
-<script src="video-tools-misc.js"></script>
+<script src="video-tools-misc.js?v=4.1.0"></script>
 
 <!-- ===== ВСТРОЕННЫЙ ВИДЕОПЛЕЕР RUTUBE ===== -->
 <div class="video-modal-overlay" id="video-modal" role="dialog" aria-modal="true" aria-label="Просмотр видео">
@@ -572,12 +681,13 @@
   <div class="video-modal-actions" id="vm-source-row">
     <button class="vm-abtn" id="vm-src-rutube" style="display:none;">▶ RuTube</button>
     <button class="vm-abtn" id="vm-src-drive" style="display:none;">📁 Google Диск</button>
+    <button class="vm-abtn" id="vm-toggle-review">🔬 Разбор видео</button>
   </div>
-  <div class="video-feedback-toolbar" id="video-feedback-toolbar">
+  <div class="video-feedback-toolbar" id="video-feedback-toolbar" style="display:none;">
     <div class="vfb-row">
       <button class="vm-abtn" id="vm-local-open" data-open-local-video>🎥 Загрузить своё видео</button>
       <input type="file" id="vm-local-file" accept="video/*" hidden>
-      <button class="vm-abtn" id="vm-local-upload-drive" style="display:none;">☁️ Сохранить видео в Google Диск</button>
+      
     </div>
     <div class="vfb-row" id="local-video-controls" style="display:none;">
       <button class="vm-abtn" id="vm-local-play">▶/⏸</button>
@@ -616,10 +726,19 @@
       <input id="vm-feedback-comment" class="vfb-input vfb-comment" placeholder="Комментарий тренера к моменту..." aria-label="Комментарий тренера">
     </div>
     <div class="vfb-row">
+      <button class="vm-abtn" id="vm-voice-record">🎤 Голосовая заметка</button>
+      <audio id="vm-voice-preview" controls style="display:none;height:32px;flex:1;min-width:140px;"></audio>
+      <button class="vm-abtn" id="vm-voice-delete" style="display:none;">🗑 Удалить запись</button>
+    </div>
+    <div class="vfb-row">
       <button class="vm-abtn" id="vm-save-feedback">💾 Сохранить отметку</button>
       <button class="vm-abtn" id="vm-new-feedback">＋ Новая отметка</button>
       <button class="vm-abtn" id="vm-clear-drawing">🧹 Очистить рисунок</button>
     </div>
+    <div class="vfb-row">
+      <button class="vm-abtn" id="vm-export-video">📤 Сохранить видео с пометками в галерею</button>
+    </div>
+    <div id="vm-export-status" class="vfb-status" style="display:none;"></div>
     <div class="vfb-row">
       <button class="vm-abtn" id="vm-intelligence">🧠 Анализ спортсмена</button>
       <button class="vm-abtn" id="vm-training-task">🎯 Создать тренировочную задачу</button>
@@ -653,10 +772,12 @@
 <script src="video-player.js"></script>
 <script src="fight-review-studio.js"></script>
 <script src="fight-intelligence.js"></script>
-<script src="training-intelligence.js"></script>
+<script src="ai-coach.js"></script>
+<script src="training-intelligence.js?v=4.1.0"></script>
+<script src="firebase-auth-ui.js?v=4.1.0"></script>
 
-<script type="module" src="src/core/config/app-config.js"></script>
-<script type="module" src="src/core/video/video-source.js"></script>
+<script type="module" src="src/core/config/app-config.js?v=4.1.0"></script>
+<script type="module" src="src/core/video/video-source.js?v=4.1.0"></script>
 <script src="sw-register.js"></script>
 </body>
 </html>

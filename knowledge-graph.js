@@ -59,6 +59,7 @@
   }
 
   function openKnowledgeGraph(name){
+    if(window.ProFeatures && !window.ProFeatures.requirePro('Видео-библиотека техник')) return;
     const modal=document.getElementById('knowledge-graph-modal');
     const title=document.getElementById('kg-title');
     const body=document.getElementById('kg-body');

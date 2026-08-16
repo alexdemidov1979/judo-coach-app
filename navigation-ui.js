@@ -1,12 +1,88 @@
   // ================= ПЕРЕКЛЮЧЕНИЕ ГЛАВНЫХ ВКЛАДОК =================
-  // Полный PDF судейских правил грузится только при открытии вкладки — не при старте приложения
+  // Полный PDF судейских правил грузится только при открытии вкладки — не при старте приложения.
+  // ВАЖНО: <iframe src="....pdf"> НЕ работает внутри Android-приложения (Capacitor WebView),
+  // потому что у системного WebView, в отличие от настольного браузера, нет встроенного
+  // просмотрщика PDF. Поэтому рендерим страницы через PDF.js прямо в canvas — это работает
+  // одинаково и в браузере, и в приложении на телефоне.
   let rulesPdfLoaded = false;
-  function loadRulesPdf(){
+  let rulesPdfDoc = null;
+  let rulesPdfPage = 1;
+  let rulesPdfRendering = false;
+
+  async function renderRulesPdfPage(num){
+    if(!rulesPdfDoc || rulesPdfRendering) return;
+    rulesPdfRendering = true;
+    const holder = document.getElementById('rules-pdf-holder');
+    try{
+      const page = await rulesPdfDoc.getPage(num);
+      const containerWidth = holder.clientWidth || 360;
+      const baseViewport = page.getViewport({scale:1});
+      const scale = containerWidth / baseViewport.width;
+      const viewport = page.getViewport({scale});
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.width = '100%';
+      canvas.style.display = 'block';
+      canvas.style.background = '#fff';
+      const ctx = canvas.getContext('2d');
+      await page.render({canvasContext: ctx, viewport}).promise;
+      holder.innerHTML = '';
+      holder.appendChild(canvas);
+      const label = document.getElementById('rules-pdf-page-label');
+      if(label) label.textContent = `Страница ${num} из ${rulesPdfDoc.numPages}`;
+      rulesPdfPage = num;
+    }catch(e){
+      console.error('Не удалось отрисовать страницу PDF:', e);
+      holder.innerHTML = '<div class="empty-hint">Не удалось показать страницу правил. Попробуйте открыть файл отдельно.</div>';
+    }finally{
+      rulesPdfRendering = false;
+    }
+  }
+
+  // Модуль PDF.js грузим только при открытии вкладки (как и Excel-модуль в roster.js) —
+  // чтобы не тратить трафик и время запуска, если правила никто не открывает.
+  function loadPdfJsLib(){
+    return new Promise((resolve, reject)=>{
+      if(window.pdfjsLib) return resolve(window.pdfjsLib);
+      const existing = document.getElementById('pdfjs-lib-script');
+      if(existing){
+        existing.addEventListener('load', ()=>resolve(window.pdfjsLib), {once:true});
+        existing.addEventListener('error', ()=>reject(new Error('Не удалось загрузить модуль PDF.')), {once:true});
+        return;
+      }
+      const sc = document.createElement('script');
+      sc.id = 'pdfjs-lib-script';
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      sc.onload = ()=> window.pdfjsLib ? resolve(window.pdfjsLib) : reject(new Error('Модуль PDF загрузился без pdfjsLib.'));
+      sc.onerror = ()=> reject(new Error('Не удалось загрузить модуль PDF.'));
+      document.head.appendChild(sc);
+    });
+  }
+
+  async function loadRulesPdf(){
     if(rulesPdfLoaded) return;
     rulesPdfLoaded = true;
     const holder = document.getElementById('rules-pdf-holder');
-    holder.innerHTML = `<iframe src="pravila-mfd.pdf" title="Судейские правила МФД" style="width:100%;height:100%;border:none;"></iframe>`;
+    holder.innerHTML = '<div class="empty-hint">Загружаю документ…</div>';
+    try{
+      const pdfjsLib = await loadPdfJsLib();
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      rulesPdfDoc = await pdfjsLib.getDocument('pravila-mfd.pdf').promise;
+      await renderRulesPdfPage(1);
+    }catch(e){
+      console.error('Не удалось открыть PDF правил:', e);
+      rulesPdfLoaded = false;
+      holder.innerHTML = '<div class="empty-hint">Не удалось открыть файл правил. Проверьте интернет-соединение или откройте файл отдельно кнопкой выше.</div>';
+    }
   }
+
+  document.getElementById('rules-pdf-prev')?.addEventListener('click', ()=>{
+    if(rulesPdfDoc && rulesPdfPage > 1) renderRulesPdfPage(rulesPdfPage - 1);
+  });
+  document.getElementById('rules-pdf-next')?.addEventListener('click', ()=>{
+    if(rulesPdfDoc && rulesPdfPage < rulesPdfDoc.numPages) renderRulesPdfPage(rulesPdfPage + 1);
+  });
 
   document.querySelectorAll('.tab').forEach(t=>{
     t.addEventListener('click', ()=>{
@@ -15,9 +91,14 @@
       t.classList.add('active');
       document.getElementById('panel-'+t.dataset.tab).classList.add('active');
       document.querySelectorAll('.bn-item').forEach(b=>b.classList.toggle('active', b.dataset.nav===t.dataset.tab));
-      if(t.dataset.tab==='roster'){ renderRoster(); }
+      if(t.dataset.tab==='roster'){ renderRoster(); try{ renderGroupsManager(); }catch(e){} }
       if(t.dataset.tab==='library'){ renderLibCats(); renderLibrary(); renderTerms(); renderKyu(); renderKodokan(); renderRules(); }
-      if(t.dataset.tab==='stats'){ renderStats(); }
+      if(t.dataset.tab==='stats'){
+        if(!window.ProFeatures || window.ProFeatures.guardPanel('panel-stats','Статистика тренировок')) renderStats();
+      }
+      if(t.dataset.tab==='ai-coach'){
+        window.ProFeatures?.guardPanel('panel-ai-coach','ИИ-тренер');
+      }
       if(t.dataset.tab==='exams'){ renderExams(); }
       if(t.dataset.tab==='competitions'){ renderCompetitions(); }
       if(t.dataset.tab==='constructor'){ renderConstructor(); }
@@ -25,6 +106,11 @@
       if(t.dataset.tab==='today'){ renderToday(); }
       window.scrollTo(0,0);
     });
+  });
+
+  window.addEventListener('judo:pro-status', ()=>{
+    if(document.getElementById('panel-stats')?.classList.contains('active')) renderStats();
+    if(document.getElementById('panel-constructor')?.classList.contains('active')) renderConstructor();
   });
 
   // ================= НИЖНЯЯ НАВИГАЦИЯ (Сегодня/Техника/Спортсмены/План/Ещё) =================
@@ -164,16 +250,23 @@
 
   // ================= ТЕМА (тёмная/светлая) =================
   (function initTheme(){
+    function syncThemeColorMeta(){
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if(!meta) return;
+      meta.setAttribute('content', document.documentElement.dataset.theme === 'light' ? '#f3f5f9' : '#17211a');
+    }
     function applyAutoTheme(){
       const hour = new Date().getHours();
       const light = hour >= 7 && hour < 20; // светлая тема днём 07:00–20:00, тёмная вечером/ночью
       if(light) document.documentElement.dataset.theme = 'light';
       else delete document.documentElement.dataset.theme;
+      syncThemeColorMeta();
     }
-    const saved = localStorage.getItem('app_theme') || 'auto';
+    const saved = localStorage.getItem('app_theme') || 'light';
     if(saved === 'auto') applyAutoTheme();
     else if(saved === 'light') document.documentElement.dataset.theme = 'light';
     else delete document.documentElement.dataset.theme;
+    syncThemeColorMeta();
     if(saved === 'auto') setInterval(applyAutoTheme, 15*60*1000);
     document.getElementById('theme-toggle').addEventListener('click', ()=>{
       // Клики циклически переключают: авто (по времени суток) → светлая → тёмная → авто...
@@ -184,6 +277,7 @@
       else if(next === 'light') document.documentElement.dataset.theme = 'light';
       else delete document.documentElement.dataset.theme;
       localStorage.setItem('app_theme', next);
+      syncThemeColorMeta();
       const label = next==='auto' ? 'авто (по времени)' : next==='light' ? 'светлая' : 'тёмная';
       const btn = document.getElementById('theme-toggle');
       btn.textContent = '🌓 Тема: ' + label;

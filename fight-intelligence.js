@@ -103,6 +103,7 @@
   }
 
   async function open(){
+    if(window.ProFeatures && !window.ProFeatures.requirePro('Разбор видео схваток')) return;
     const id=$('vm-feedback-athlete')?.value||'';
     if(!id){render(null);return;}
     const b=$('vm-intelligence'); if(b){b.disabled=true;b.textContent='⏳ Анализ…';}

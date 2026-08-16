@@ -4,6 +4,7 @@
     font-display: swap;
   }
   :root{
+    color-scheme: dark;
     --mat: #17211a;
     --mat-2: #1f2b22;
     --card: #232f27;
@@ -21,6 +22,7 @@
   }
   /* Новая основная тема 2026: белый фон, тёмно-синий как главный цвет, красный только для важных/критичных действий */
   [data-theme="light"]{
+    color-scheme: light;
     --mat: #f3f5f9;
     --mat-2: #ffffff;
     --card: #ffffff;
@@ -118,6 +120,15 @@
   .video-modal-actions{ display:flex; gap:8px; padding:0 12px 10px; flex-wrap:wrap; }
   .video-modal-actions .vm-abtn{ background:rgba(255,255,255,.1); color:#fff; border:none; border-radius:10px; padding:8px 12px; font-size:12.5px; cursor:pointer; display:flex; align-items:center; gap:5px; }
   .video-modal-actions .vm-abtn.active{ background:var(--gold,#c9a24b); color:#101f3c; }
+  /* Раньше .vm-abtn был описан ТОЛЬКО внутри .video-modal-actions — кнопки
+     в панели разбора видео (загрузка файла, play/pause, разметка, метки,
+     голосовые заметки, экспорт) вообще не имели стиля и показывались как
+     неоформленные системные кнопки браузера. Добавляем им нормальный вид,
+     через переменные темы — так они одинаково хорошо читаются в тёмной и
+     светлой схеме. */
+  .video-feedback-toolbar .vm-abtn{ background:var(--mat-2); color:var(--white); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  .video-feedback-toolbar .vm-abtn:active{ opacity:.75; }
+  .video-feedback-toolbar .vm-abtn.active{ background:var(--belt-red); color:#fff; border-color:var(--belt-red); }
 
   .mini-player{ position:fixed; z-index:150; width:200px; aspect-ratio:16/9; border-radius:12px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.4); background:#000; display:none; }
   .mini-player.open{ display:block; }
@@ -376,3 +387,176 @@ body.modal-open{overflow:hidden;}
   #vm-local-speed{min-width:62px!important;width:62px;}
   #local-video-time{font-size:10px;}
 }
+
+
+/* ===== LIGHT THEME — high readability patch (v2, полная переработка) ===== */
+[data-theme="light"] body{
+  background: linear-gradient(180deg,#f7f9fc 0%,#eef2f7 100%) !important;
+  color:var(--white);
+}
+[data-theme="light"] .card,
+[data-theme="light"] .session,
+[data-theme="light"] .tabs,
+[data-theme="light"] .timer-tab,
+[data-theme="light"] .palette-btn,
+[data-theme="light"] .lib-item,
+[data-theme="light"] .stat-box,
+[data-theme="light"] .bulk-box,
+[data-theme="light"] .constructor-block,
+[data-theme="light"] .athlete-profile-sheet{
+  background:#ffffff !important;
+  color:#16213a !important;
+  border-color:#d8deea !important;
+}
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea{
+  background:#ffffff !important;
+  color:#17233b !important;
+  border-color:#cfd6e4 !important;
+  caret-color:#101f3c;
+}
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder{color:#7b8498 !important;opacity:1;}
+[data-theme="light"] label,
+[data-theme="light"] .section-title,
+[data-theme="light"] .title,
+[data-theme="light"] .disp,
+[data-theme="light"] .cb-title{color:#16213a !important;}
+[data-theme="light"] .desc,
+[data-theme="light"] .empty-hint,
+[data-theme="light"] .offline-note,
+[data-theme="light"] .vfb-status,
+[data-theme="light"] .lib-item .desc{color:#667085 !important;}
+[data-theme="light"] .bottom-nav{background:#ffffff !important;border-color:#d8deea !important;}
+[data-theme="light"] .bn-item{color:#667085;}
+[data-theme="light"] .bn-item.active{color:#101f3c;}
+[data-theme="light"] .video-feedback-toolbar{background:#ffffff !important;color:#17233b !important;border-color:#d8deea !important;}
+[data-theme="light"] .vfb-row{color:#17233b;}
+[data-theme="light"] .skip-link{background:#101f3c !important;color:#fff !important;}
+[data-theme="light"] .athlete-profile-modal{background:rgba(16,31,60,.32) !important;}
+[data-theme="light"] .modal-sheet,
+[data-theme="light"] .sheet{background:#fff !important;color:#16213a !important;}
+/* Black is intentional only inside actual video frames. */
+
+/* --- Второстепенный текст: было слишком бледно (--dim), поднимаем контраст --- */
+[data-theme="light"] { --dim: #5a6478; }
+
+/* --- 4 места, где текст оказывался того же тёмно-синего цвета, что и фон
+   (переменная --gold в светлой теме — это тёмно-синий, а не золотой, и
+   некоторые компоненты по старой памяти ставили тёмный текст поверх неё) --- */
+[data-theme="light"] .video-modal-actions .vm-abtn.active{ color:#fff !important; }
+[data-theme="light"] .chip.att-excused{ color:#fff !important; }
+[data-theme="light"] .badge.wazaari{ color:#fff !important; }
+[data-theme="light"] .lib-cat.active{ color:#fff !important; }
+
+/* --- Панель разбора видео: кнопки вообще не имели стиля вне плеера --- */
+[data-theme="light"] .video-feedback-toolbar .vm-abtn{ background:#f3f5f9 !important; color:#16213a !important; border-color:#d8deea !important; }
+[data-theme="light"] .video-feedback-toolbar .vm-abtn.active{ background:var(--belt-red) !important; color:#fff !important; border-color:var(--belt-red) !important; }
+[data-theme="light"] #vm-voice-record.active{ background:var(--belt-red) !important; color:#fff !important; }
+
+/* --- Календарь: тёмная подсветка при наведении была нечитаема на светлом фоне --- */
+[data-theme="light"] .cal-day:hover{ background:#e7ecf5 !important; }
+[data-theme="light"] .cal-day.selected:hover{ background:var(--belt-red) !important; }
+
+/* --- Точки прогресса (раунды таймера) — были почти невидимы на светлом фоне --- */
+[data-theme="light"] .dot{ background:#cbd3e1; }
+
+/* --- Мелкие элементы, использующие устаревшие несуществующие переменные
+   (--surface/--text/--accent), которые никогда не были определены — из-за
+   этого они либо не подхватывали тему, либо были едва читаемы --- */
+[data-theme="light"] .jc-auth-tab{ background:#ffffff !important; color:#16213a !important; border-color:#d8deea !important; }
+[data-theme="light"] .jc-link-btn{ color:#101f3c !important; }
+[data-theme="light"] .jc-admin-user{ background:#ffffff !important; border-color:#d8deea !important; }
+[data-theme="light"] .jc-admin-empty{ background:#eef1f6 !important; color:#5a6478 !important; }
+[data-theme="light"] .jc-role-check{ background:#eef1f6 !important; color:#16213a !important; }
+[data-theme="light"] .ap-section{ background:#f7f9fc !important; }
+[data-theme="light"] .ap-stat{ background:#ffffff !important; border-color:#d8deea !important; }
+[data-theme="light"] .kg-node,
+[data-theme="light"] .kg-intro{ background:#f7f9fc !important; color:#16213a !important; }
+
+
+/* ===== Judo Coach 4.1 — Firebase Email/Password + Club Admin UI ===== */
+.jc-auth-head,.jc-admin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.jc-auth-status{font-size:12.5px;line-height:1.4;color:var(--dim);margin-top:4px}
+.jc-role-badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:var(--ok);color:#fff;font-size:11px;font-weight:800;white-space:nowrap}
+.jc-auth-tabs{display:flex;gap:6px;margin:14px 0 10px}
+.jc-auth-tab{flex:1;border:1px solid rgba(0,0,0,.12);background:var(--card,#fff);color:var(--text,#17211a);border-radius:10px;padding:9px 10px;font-weight:700;cursor:pointer}
+.jc-auth-tab.active{background:var(--accent,#c99b2e);color:#fff;border-color:transparent}
+.jc-auth-form{display:flex;flex-direction:column;gap:10px}
+.jc-auth-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700}
+.jc-auth-form input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid rgba(0,0,0,.16);border-radius:10px;background:#fff;color:#17211a;font:inherit}
+.jc-first-club{padding:11px;border-radius:12px;background:rgba(201,155,46,.10);border:1px solid rgba(201,155,46,.25)}
+.jc-first-club-title{font-weight:800;font-size:13px}
+.jc-link-btn{border:0;background:none;color:var(--accent,#9a7318);font-weight:700;text-decoration:underline;cursor:pointer;padding:3px}
+.jc-auth-message{min-height:18px;margin-top:9px;font-size:12.5px;font-weight:700}
+.jc-auth-message.error{color:#b3261e}
+.jc-auth-message.success{color:#1b7f3a}
+.jc-auth-user{font-weight:800;font-size:14px}
+.jc-auth-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.jc-admin-note{font-size:12px;line-height:1.45;color:var(--dim);padding:9px 0}
+.jc-admin-section-title{font-size:13px;font-weight:800;margin:12px 0 7px}
+.jc-admin-empty{padding:12px;border-radius:10px;background:rgba(0,0,0,.04);font-size:12.5px;color:var(--dim)}
+.jc-admin-user{padding:12px;margin:8px 0;border:1px solid rgba(0,0,0,.10);border-radius:12px;background:#fff}
+.jc-admin-user-name{font-weight:800;font-size:14px}
+.jc-admin-user-email{font-size:12px;margin-top:2px;word-break:break-all}
+.jc-admin-user-meta{font-size:11px;color:var(--dim);margin-top:4px}
+.jc-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.jc-role-check{display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 8px;border-radius:8px;background:#f4f5f3}
+.jc-role-check input{accent-color:#9a7318}
+.jc-admin-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+@media (max-width:480px){
+  .jc-role-grid{grid-template-columns:1fr 1fr}
+  .jc-auth-head,.jc-admin-head{align-items:center}
+}
+
+/* ===== PRO / LITE lock overlay ===== */
+.pro-lock-overlay{
+  position:absolute; inset:0; z-index:20;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(10,14,20,.72);
+  backdrop-filter:blur(2px);
+  border-radius:inherit;
+}
+[data-theme="light"] .pro-lock-overlay{ background:rgba(255,255,255,.85); }
+.pro-lock-box{
+  text-align:center; color:#fff; padding:18px 22px; border-radius:14px;
+  background:rgba(16,24,38,.9); border:1px solid rgba(255,255,255,.15);
+  max-width:280px; line-height:1.5; font-size:14px;
+}
+[data-theme="light"] .pro-lock-box{ background:#101f3c; color:#fff; }
+.pro-lock-box span{ opacity:.8; font-size:12.5px; }
+.pro-lock-box .pro-lock-btn{ margin-top:10px; }
+
+/* ===== ИИ-тренер: чат ===== */
+.ai-chat-messages{
+  display:flex; flex-direction:column; gap:8px;
+  max-height:50vh; min-height:120px; overflow-y:auto;
+  padding:6px; border-radius:10px; background:var(--mat-2);
+}
+.ai-msg{ display:flex; }
+.ai-msg-user{ justify-content:flex-end; }
+.ai-msg-model{ justify-content:flex-start; }
+.ai-msg-bubble{
+  max-width:85%; padding:8px 12px; border-radius:12px; font-size:14px; line-height:1.45;
+  white-space:pre-wrap; word-break:break-word;
+}
+.ai-msg-user .ai-msg-bubble{ background:var(--gold); color:#fff; border-bottom-right-radius:3px; }
+.ai-msg-model .ai-msg-bubble{ background:var(--card,#1e2a22); color:var(--white); border:1px solid var(--line); border-bottom-left-radius:3px; }
+[data-theme="light"] .ai-msg-model .ai-msg-bubble{ background:#fff; color:#16213a; }
+#ai-chat-input{
+  resize:vertical; border-radius:10px; border:1px solid var(--line); background:var(--mat-2); color:var(--white);
+  padding:8px 10px; font:inherit;
+}
+[data-theme="light"] #ai-chat-input{ background:#fff; color:#16213a; }
+
+/* ===== Разбор видео: голосовые заметки и экспорт ===== */
+#vm-voice-record.active{ background:var(--belt-red) !important; color:#fff !important; }
+#vm-export-status{ font-style:italic; }
+
+/* ===== Быстрая смена группы в списке учеников ===== */
+.quick-group{
+  font-size:11px; padding:2px 6px; border-radius:6px; border:1px solid var(--line);
+  background:var(--mat-2); color:var(--dim); max-width:150px;
+}
+[data-theme="light"] .quick-group{ background:#f3f5f9 !important; color:#16213a !important; border-color:#d8deea !important; }

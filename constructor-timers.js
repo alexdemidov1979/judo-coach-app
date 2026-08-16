@@ -183,9 +183,13 @@ Eco ukemi через спину партнёра
   }
 
   async function renderConstructorTemplates(){
+    const el = document.getElementById('constructor-templates');
+    if(window.ProFeatures && !window.ProFeatures.guardPanel('constructor-templates','Шаблоны тренировок')){
+      el.style.minHeight = '110px';
+      return;
+    }
     await seedDefaultWorkoutTemplates();
     const templates = await getWorkoutTemplates();
-    const el = document.getElementById('constructor-templates');
     if(!templates.length){ el.innerHTML = '<div class="empty-hint">Сохранённых шаблонов пока нет.</div>'; return; }
     el.innerHTML = templates.map((t,i)=>`
       <div class="lib-item" style="display:flex;align-items:center;gap:8px;">

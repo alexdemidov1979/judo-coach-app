@@ -53,15 +53,19 @@
 
     try {
       const res = await S.list('');
-      for (const key of (res && res.keys) || []) {
+      const keys = ((res && res.keys) || []).filter(key =>
         // Never sync internal OAuth/service keys if an old version left them behind.
-        if (/^gdrive_/i.test(key)) continue;
-        if (/^firebase_/i.test(key)) continue;
+        !/^gdrive_/i.test(key) && !/^firebase_/i.test(key)
+      );
+      // Раньше ключи читались по одному в цикле (await внутри for) — при
+      // большом числе тренировок/учеников это заметно замедляло вход и
+      // синхронизацию. Читаем всё параллельно.
+      await Promise.all(keys.map(async key => {
         try {
           const r = await S.get(key);
           if (r && r.value !== undefined) dump.data[key] = r.value;
         } catch(e) {}
-      }
+      }));
     } catch(e) {
       console.warn('Firebase cloud dump: unable to read local cache', e);
     }
@@ -72,9 +76,9 @@
     if(!dump || typeof dump !== 'object') return;
     const data = dump.data && typeof dump.data === 'object' ? dump.data : null;
     if(data){
-      for(const [key, value] of Object.entries(data)){
+      await Promise.all(Object.entries(data).map(async ([key, value]) => {
         try{ await S.set(key, value); }catch(e){ console.warn('Local restore failed:', key, e); }
-      }
+      }));
     }
     try{ await renderCalendar(); }catch(e){}
     try{ await loadSessionsForDate(selectedDate); }catch(e){}
@@ -83,10 +87,38 @@
     try{ if(document.getElementById('panel-stats')?.classList.contains('active')) renderStats(); }catch(e){}
   }
 
+  // Если сеть/антивирус блокирует соединение с Firestore, запрос может
+  // висеть без ответа сколь угодно долго. Ограничиваем ожидание, чтобы
+  // интерфейс не застревал навечно на "Проверяем Firebase…".
+  function withTimeout(promise, ms, label){
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(
+        () => reject(new Error(`Таймаут: ${label || 'операция'} не ответила за ${Math.round(ms/1000)} сек.`)),
+        ms
+      ))
+    ]);
+  }
+
+  // В России Firestore/Firebase Auth иногда недоступны без VPN (сети
+  // некоторых операторов ограничивают доступ к инфраструктуре Google).
+  // Вместо невнятной "ошибки синхронизации" объясняем, что происходит —
+  // и напоминаем, что локальные данные при этом никуда не пропадают.
+  function friendlyNetworkError(e){
+    const msg = String(e?.message || e || '');
+    if(/Таймаут|network|unavailable|Failed to fetch|ERR_|offline/i.test(msg)){
+      return 'Нет связи с сервером Firebase (в России иногда нужен VPN). Работаем локально — данные сохранены на телефоне.';
+    }
+    return 'Ошибка синхронизации: ' + msg;
+  }
+
   async function listCloudDocs(uid){
+    // Оставлено для обратной совместимости вызовов ниже по файлу — теперь
+    // просто дёргает download и оборачивает в псевдо-список "документов",
+    // раз в других местах проверяют .length.
     const fb = window.JudoFirebase;
-    const snap = await fb.getDocs(fb.getUserDataCollection(uid));
-    return snap.docs || [];
+    const data = await withTimeout(fb.downloadDataDump(), 20000, 'загрузка данных с сервера');
+    return Object.keys(data||{}).map(k=>({id:k}));
   }
 
   async function uploadDumpToFirebase(silent=false){
@@ -99,40 +131,18 @@
     if(syncInProgress) return false;
     syncInProgress = true;
     try{
-      setCloudStatus('Синхронизация…', '🟡 Firebase');
+      setCloudStatus('Синхронизация…', '🟡 Сервер');
       const dump = await buildDump();
-      const entries = Object.entries(dump.data || {});
-      // One batch is limited to 500 writes. Chunk safely.
-      for(let i=0;i<entries.length;i+=450){
-        const batch = fb.writeBatch(fb.db);
-        for(const [key, value] of entries.slice(i, i+450)){
-          batch.set(fb.getUserDataDoc(user.uid, encodeKey(key)), {
-            key,
-            value,
-            updatedAt: fb.serverTimestamp(),
-            updatedBy: user.uid
-          }, { merge: true });
-        }
-        await batch.commit();
-      }
-      const metaRef = fb.getUserDataDoc(user.uid, '__meta__');
-      await fb.setDoc(metaRef, {
-        key: '__meta__',
-        schemaVersion: dump.schemaVersion,
-        appVersion: dump.appVersion,
-        email: user.email || null,
-        updatedAt: fb.serverTimestamp(),
-        updatedBy: user.uid,
-        dataKeys: entries.length
-      }, { merge: true });
+      const entries = Object.entries(dump.data || {}).map(([key,value])=>({key,value}));
+      await withTimeout(fb.uploadDataDump(entries), 20000, 'выгрузка данных на сервер');
       localStorage.setItem('firebase_last_sync', new Date().toISOString());
-      setCloudStatus('Данные синхронизированы', '🟢 Firebase Cloud');
-      if(!silent) alert('Данные сохранены в Firebase Cloud.');
+      setCloudStatus('Данные синхронизированы', '🟢 Сервер');
+      if(!silent) alert('Данные сохранены на сервере.');
       return true;
     }catch(e){
-      console.error('Firebase upload failed:', e);
-      setCloudStatus('Ошибка синхронизации', '🔴 Firebase');
-      if(!silent) alert('Не удалось сохранить данные в Firebase.\n\n' + (e?.message || e));
+      console.error('Server upload failed:', e);
+      setCloudStatus(friendlyNetworkError(e), '🔴 Сервер');
+      if(!silent) alert('Не удалось сохранить данные на сервере.\n\n' + friendlyNetworkError(e));
       return false;
     }finally{ syncInProgress = false; }
   }
@@ -144,32 +154,22 @@
     if(syncInProgress) return false;
     syncInProgress = true;
     try{
-      setCloudStatus('Загрузка из Firebase…', '🟡 Firebase');
-      const docs = await listCloudDocs(user.uid);
-      const data = {};
-      for(const d of docs){
-        const x = d.data();
-        if(d.id === encodeKey('__meta__') || x.key === '__meta__') continue;
-        if(x.key) data[x.key] = x.value;
-        else {
-          const decoded = decodeKey(d.id);
-          if(decoded && decoded !== d.id) data[decoded] = x.value;
-        }
-      }
+      setCloudStatus('Загрузка с сервера…', '🟡 Сервер');
+      const data = await withTimeout(fb.downloadDataDump(), 20000, 'загрузка данных с сервера');
       if(!Object.keys(data).length){
-        setCloudStatus('В Firebase пока нет данных', '⚪ Firebase');
-        if(!silent) alert('В Firebase пока нет пользовательских данных.');
+        setCloudStatus('На сервере пока нет данных', '⚪ Сервер');
+        if(!silent) alert('На сервере пока нет пользовательских данных.');
         return false;
       }
       await applyDump({ schemaVersion: 4, appVersion: '4.0.0', data });
       localStorage.setItem('firebase_last_sync', new Date().toISOString());
-      setCloudStatus('Данные загружены', '🟢 Firebase Cloud');
-      if(!silent) alert('Данные загружены из Firebase.');
+      setCloudStatus('Данные загружены', '🟢 Сервер');
+      if(!silent) alert('Данные загружены с сервера.');
       return true;
     }catch(e){
-      console.error('Firebase download failed:', e);
-      setCloudStatus('Ошибка загрузки', '🔴 Firebase');
-      if(!silent) alert('Не удалось загрузить данные из Firebase.\n\n' + (e?.message || e));
+      console.error('Server download failed:', e);
+      setCloudStatus(friendlyNetworkError(e), '🔴 Сервер');
+      if(!silent) alert('Не удалось загрузить данные с сервера.\n\n' + friendlyNetworkError(e));
       return false;
     }finally{ syncInProgress = false; }
   }
@@ -178,6 +178,51 @@
     const fb = window.JudoFirebase;
     if(!fb || !currentFirebaseUser) return;
     if(cloudInitializedForUid === currentFirebaseUser.uid) return;
+    if(window.ProFeatures && !window.ProFeatures.isPro){
+      // В Lite-версии вход работает (можно завести аккаунт тренера),
+      // но синхронизация данных между устройствами и резервная копия
+      // в Firebase — платная функция.
+      setCloudStatus('Облачная синхронизация — в полной версии', '🔒 Lite');
+      return;
+    }
+
+    // ЗАЩИТА ОТ УТЕЧКИ МЕЖДУ АККАУНТАМИ.
+    // Локальные данные на телефоне не привязаны к конкретному Firebase-аккаунту
+    // сами по себе — раньше при первом входе НОВОЙ почты, если в её облаке ещё
+    // пусто, а на устройстве остались данные от ПРЕДЫДУЩЕГО вошедшего аккаунта,
+    // они молча заливались в облако нового аккаунта. Теперь мы запоминаем,
+    // какому аккаунту принадлежат локальные данные, и при смене аккаунта на
+    // этом устройстве явно спрашиваем, а не переносим автоматически.
+    const OWNER_KEY = 'jc_local_data_owner_uid';
+    const storedOwner = localStorage.getItem(OWNER_KEY);
+    if(storedOwner && storedOwner !== currentFirebaseUser.uid){
+      const keep = confirm(
+        `На этом устройстве есть локальные данные ДРУГОГО аккаунта.\n\n`+
+        `Чтобы не перепутать тренировки разных тренеров, они НЕ будут отправлены в облако текущего аккаунта (${currentFirebaseUser.email||''}).\n\n`+
+        `ОК — скачать данные текущего аккаунта из облака (заменит то, что видно на экране сейчас).\n`+
+        `Отмена — выйти из аккаунта и ничего не менять.`
+      );
+      if(!keep){
+        try{ await fb.signOut(); }catch(e){}
+        return;
+      }
+      cloudInitializedForUid = currentFirebaseUser.uid;
+      showCloudSignedIn(true);
+      setCloudStatus('Загружаем данные аккаунта из облака…', '🟡 Firebase');
+      try{
+        const docs = await listCloudDocs(currentFirebaseUser.uid);
+        const realDocs = docs.filter(d => d.id !== encodeKey('__meta__'));
+        if(realDocs.length){ await downloadFromFirebase(true); }
+        else { setCloudStatus('Firebase готов (новый аккаунт, данных пока нет)', '🟢 Firebase Cloud'); }
+        localStorage.setItem(OWNER_KEY, currentFirebaseUser.uid);
+      }catch(e){
+        console.error('Account switch sync failed:', e);
+        setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Firebase');
+      }
+      return;
+    }
+    if(!storedOwner) localStorage.setItem(OWNER_KEY, currentFirebaseUser.uid);
+
     cloudInitializedForUid = currentFirebaseUser.uid;
     showCloudSignedIn(true);
     const account = $('cloud-account');
@@ -214,7 +259,7 @@
       }
     }catch(e){
       console.error('Firebase login sync failed:', e);
-      setCloudStatus('Вход выполнен, синхронизация не завершена', '🟠 Firebase');
+      setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Firebase');
     }
   }
 
@@ -269,21 +314,21 @@
       const file=e.target.files?.[0]; if(file) importAllData(file); e.target.value='';
     });
 
-    $('firebase-signin')?.addEventListener('click', async ()=>{
-      try{
-        if(!window.JudoFirebase) throw new Error('Firebase ещё не инициализирован.');
-        setCloudStatus('Переходим к авторизации…', '🟡 Firebase');
-        await window.JudoFirebase.signIn();
-      }catch(e){
-        console.error(e);
-        alert('Не удалось начать вход в Firebase.\n\n' + (e?.message || e));
-      }
+    $('firebase-signin')?.addEventListener('click', ()=>{
+      document.getElementById('main-auth-card')?.scrollIntoView({behavior:'smooth',block:'center'});
+      document.getElementById('auth-login-email')?.focus();
     });
     $('firebase-signout')?.addEventListener('click', async ()=>{
       try{ await window.JudoFirebase?.signOut(); }catch(e){ alert('Не удалось выйти: '+(e?.message||e)); }
     });
-    $('firebase-upload')?.addEventListener('click', ()=>uploadDumpToFirebase(false));
-    $('firebase-download')?.addEventListener('click', ()=>downloadFromFirebase(false));
+    $('firebase-upload')?.addEventListener('click', ()=>{
+      if(window.ProFeatures && !window.ProFeatures.requirePro('Синхронизация с облаком')) return;
+      uploadDumpToFirebase(false);
+    });
+    $('firebase-download')?.addEventListener('click', ()=>{
+      if(window.ProFeatures && !window.ProFeatures.requirePro('Синхронизация с облаком')) return;
+      downloadFromFirebase(false);
+    });
   }
 
   function onFirebaseState(e){
@@ -309,7 +354,7 @@
       cloudInitializedForUid=null;
       showCloudSignedIn(false);
       setCloudStatus('Войдите, чтобы включить Firebase Cloud','⚪ Не подключено');
-      if(mainStatus) mainStatus.textContent='Войдите через Google — аккаунт будет защищён Firebase';
+      if(mainStatus) mainStatus.textContent='Вход и регистрация через Firebase · email + пароль';
       if(mainUser) mainUser.style.display='none';
       if(mainActions) mainActions.style.display='none';
       if(mainSignin) mainSignin.style.display='';
@@ -317,6 +362,12 @@
   }
 
   window.addEventListener('judo:firebase-auth-state', onFirebaseState);
+  window.addEventListener('judo:pro-status', (e)=>{
+    if(e.detail?.isPro && currentFirebaseUser){
+      cloudInitializedForUid = null; // разрешаем повторный запуск синхронизации
+      syncAfterLogin();
+    }
+  });
   window.addEventListener('judo:firebase-auth-error', e=>{
     const err=e.detail||{};
     setCloudStatus('Ошибка авторизации', '🔴 Firebase');

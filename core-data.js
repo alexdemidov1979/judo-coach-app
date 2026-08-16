@@ -285,29 +285,64 @@
   }
 
   // ---------- Beep ----------
+  // Раньше сигнал включался мгновенно на полную громкость — это даёт резкий "щелчок"
+  // и грубый, неприятный звук. Плюс браузеры/WebView могут "усыплять" AudioContext,
+  // и без resume() сигнал иногда вообще не звучал. Ниже — мягкий колокольчатый тон
+  // (плавное нарастание + пара тихих обертонов) и обязательный resume() перед каждым сигналом.
   let actx;
-  function beep(freq=880, dur=150, vol=0.25){
+  function ensureAudioContext(){
+    if(!actx){
+      try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+    }
+    if(actx.state === 'suspended'){ actx.resume().catch(()=>{}); }
+    return actx;
+  }
+  // Разблокируем звук при самом первом касании экрана — на телефонах браузер иначе
+  // может не дать звуку заиграть до первого пользовательского действия.
+  ['pointerdown','touchstart','click'].forEach(evt=>{
+    document.addEventListener(evt, ()=>ensureAudioContext(), {once:true, passive:true});
+  });
+
+  function beep(freq=880, dur=150, vol=0.55){
     try{
-      actx = actx || new (window.AudioContext||window.webkitAudioContext)();
-      const o = actx.createOscillator(); const g = actx.createGain();
-      o.frequency.value = freq; o.type='sine';
-      g.gain.value = vol;
-      o.connect(g); g.connect(actx.destination);
-      o.start();
-      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur/1000);
-      o.stop(actx.currentTime + dur/1000 + 0.02);
+      const ctx = ensureAudioContext();
+      if(!ctx) return;
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.linearRampToValueAtTime(vol, now + 0.012); // плавный старт — без щелчка
+      master.gain.exponentialRampToValueAtTime(0.0001, now + dur/1000);
+      master.connect(ctx.destination);
+
+      // Основной тон
+      const o1 = ctx.createOscillator();
+      o1.type = 'sine';
+      o1.frequency.value = freq;
+      o1.connect(master);
+      o1.start(now);
+      o1.stop(now + dur/1000 + 0.05);
+
+      // Тихий обертон на квинту с октавой выше — даёт мягкий "колокольчик" вместо плоского гудка
+      const o2 = ctx.createOscillator();
+      o2.type = 'sine';
+      o2.frequency.value = freq * 2.5;
+      const g2 = ctx.createGain();
+      g2.gain.value = 0.16;
+      o2.connect(g2); g2.connect(master);
+      o2.start(now);
+      o2.stop(now + dur/1000 + 0.05);
     }catch(e){}
   }
   // Отдельный узнаваемый сигнал на самое начало тренировки (после отсчёта готовности)
   function beepStart(){
-    beep(660,120,0.3);
-    setTimeout(()=>beep(880,120,0.3), 140);
-    setTimeout(()=>beep(1100,220,0.3), 280);
+    beep(660,150,0.5);
+    setTimeout(()=>beep(880,150,0.5), 170);
+    setTimeout(()=>beep(1100,280,0.5), 340);
   }
   // Двойной сигнал на окончание каждого раунда работы
   function beepRoundEnd(){
-    beep(550,100,0.25);
-    setTimeout(()=>beep(550,100,0.25), 150);
+    beep(600,150,0.45);
+    setTimeout(()=>beep(600,150,0.45), 190);
   }
 
   // ---------- Вибрация на ключевых событиях таймера ----------
@@ -449,9 +484,19 @@
 
   function sessionAttendanceChipsHtml(session, roster){
     if(roster.length===0) return '<div class="empty-hint">Добавьте учеников на вкладке «Ученики»</div>';
+    // Если у тренировки выбрана группа — показываем только учеников этой
+    // группы (по полю trainingGroup), чтобы не искать нужных детей среди
+    // всего списка. Без выбранной группы показываются все, как раньше.
+    const groupFilter = String(session.group||'').trim();
+    const filtered = groupFilter
+      ? roster.filter(r => String(r.trainingGroup||'').trim() === groupFilter)
+      : roster;
+    if(groupFilter && filtered.length===0){
+      return `<div class="empty-hint">В группе «${groupFilter}» пока нет учеников. Укажите эту группу у нужных учеников на вкладке «Ученики», или выберите другую группу.</div>`;
+    }
     const status = session.attendanceStatus || {};
     const legacySet = new Set(session.attendance||[]);
-    return `<div class="attendance-list">` + roster.map(r=>{
+    return `<div class="attendance-list">` + filtered.map(r=>{
       let st = status[r.name];
       if(!st && legacySet.has(r.name)) st = 'present'; // обратная совместимость со старыми данными
       const cls = st==='present' ? 'on att-present' : st==='excused' ? 'on att-excused' : st==='absent' ? 'on att-absent' : '';
@@ -488,6 +533,7 @@
   async function renderSessions(){
     const wrap = document.getElementById('sessions-container');
     const roster = await getRoster();
+    const groupsList = await getGroups();
     if(currentSessions.length===0){
       wrap.innerHTML = '<div class="empty-hint">На этот день пока нет тренировок. Нажми «Добавить тренировку».</div>';
       return;
@@ -504,7 +550,9 @@
         </div>
         <div class="session-body ${s.open?'open':''}">
           <div class="row2">
-            <div><label>Группа / возраст</label><input type="text" data-f="group" data-i="${i}" value="${(s.group||'').replace(/"/g,'&quot;')}"></div>
+            <div><label>Группа</label>
+              <select data-f="group" data-i="${i}">${groupOptionsHtmlSync(groupsList, s.group)}</select>
+            </div>
             <div><label>Длительность, мин</label><input type="number" data-f="duration" data-i="${i}" value="${s.duration||60}"></div>
           </div>
           <label>Статус</label>
@@ -558,6 +606,12 @@
       inp.addEventListener('change', ()=>{
         const i = Number(inp.dataset.i);
         activeSessionIndex = i;
+        // Смена группы тренировки — сразу перерисовываем, чтобы список
+        // "Присутствовали" подтянул состав именно этой группы.
+        if(inp.dataset.f === 'group'){
+          currentSessions[i].open = true;
+          renderSessions();
+        }
       });
     });
     wrap.querySelectorAll('.chip').forEach(ch=>{
@@ -595,6 +649,19 @@
     } else {
       await S.set(key, JSON.stringify(currentSessions));
     }
+    renderCalendar();
+    try{ await exportAllData(true); }catch(e){}
+  });
+
+  document.getElementById('clear-day').addEventListener('click', async ()=>{
+    if(currentSessions.length===0){ return; }
+    const dateLabel = selectedDate.toLocaleDateString('ru-RU');
+    if(!confirm(`Удалить ВСЕ тренировки на ${dateLabel}? Это действие нельзя отменить.`)) return;
+    currentSessions = [];
+    const key = dateKey(selectedDate);
+    try{ await S.delete(key); }catch(e){}
+    activeSessionIndex = null;
+    renderSessions();
     renderCalendar();
     try{ await exportAllData(true); }catch(e){}
   });

@@ -87,6 +87,7 @@
 
   async function render(){
     const el=$('training-intelligence-list');if(!el)return;
+    if(window.ProFeatures && !window.ProFeatures.guardPanel('training-intelligence-card','ИИ-тренер')) return;
     const tasks=await getTasks();
     if(!tasks.length){el.innerHTML='<div class="empty-hint">Пока нет тренировочных задач. Создайте задачу из анализа спортсмена после разбора схватки.</div>';return;}
     el.innerHTML=tasks.slice(0,12).map(t=>`
@@ -118,4 +119,5 @@
     render();
   });
   window.JudoTrainingIntelligence={getTasks,saveTasks,createFromAthlete,addTaskToToday,render};
+  window.addEventListener('judo:pro-status', render);
 })();

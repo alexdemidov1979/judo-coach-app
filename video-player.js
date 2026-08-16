@@ -120,13 +120,38 @@
     renderRelated();
   }
 
+  // Уровень кю техники по romaji (5 = самый базовый уровень, дальше цифра меньше — выше пояс).
+  function kyuLevelOf(romaji){
+    if(!romaji || typeof KYU_DATA === 'undefined') return null;
+    for(const key of Object.keys(KYU_DATA)){
+      const n = Number(key);
+      if(!Number.isFinite(n)) continue; // пропускаем даны и прочие нечисловые уровни
+      if(KYU_DATA[key].groups.some(g=>g.items.some(it=>it.romaji===romaji))) return n;
+    }
+    return null;
+  }
+
   window.openVideoByUrl = function(url){
     if(!url) return;
+    const t = findTechnique(url);
+    if(t && window.ProFeatures && !window.ProFeatures.isPro){
+      const level = kyuLevelOf(t.romaji);
+      // В FREE-версии открыт только базовый уровень 5 кю. Более высокие
+      // пояса (меньшее число кю) и даны — функция полной версии.
+      if(level !== null && level < window.ProFeatures.limits.maxTechniqueRank){
+        window.ProFeatures.requirePro('Видео-библиотека техник');
+        return;
+      }
+    }
     const built = buildList(url);
     currentList = built.list;
     currentIndex = built.idx;
     modal.classList.add('open');
     document.body.style.overflow='hidden';
+    const reviewPanel = document.getElementById('video-feedback-toolbar');
+    const reviewBtn = document.getElementById('vm-toggle-review');
+    if(reviewPanel){ reviewPanel.style.display='none'; }
+    if(reviewBtn){ reviewBtn.classList.remove('active'); }
     showAt(currentIndex);
   };
 
