@@ -10,9 +10,16 @@
 const SUPABASE_URL = 'https://aiwkzolbyuvnmdypwzzg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_NfXrK4ZdrH1f_Pdo0mhasA_BH0GmcM8';
 
-// supabase-js подключается отдельным <script> тегом перед этим файлом
-// (см. index.html) и создаёт глобальную переменную window.supabase.
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// supabase-js подключается локальным файлом supabase-js.vendor.js перед
+// этим скриптом (см. index.html) — не через внешний CDN, чтобы приложение
+// не зависало на старте, если CDN недоступен без VPN. Создаёт глобальную
+// переменную window.supabase.
+let sb = null;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) {
+  console.error('Supabase client init failed:', e);
+}
 
 const USER_KEY = 'jc_supabase_user'; // {uid,email,isPro} — кэш для синхронного getCurrentUser()
 
@@ -47,6 +54,7 @@ async function buildUser(sessionUser) {
 
 // ---- Auth ----
 async function signIn(email, password) {
+  if (!sb) throw new Error('Библиотека Supabase не загрузилась. Проверьте подключение к интернету.');
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message || 'Ошибка входа.');
   const user = await buildUser(data.user);
@@ -56,6 +64,7 @@ async function signIn(email, password) {
 }
 
 async function register({ email, password, displayName }) {
+  if (!sb) throw new Error('Библиотека Supabase не загрузилась. Проверьте подключение к интернету.');
   const { data, error } = await sb.auth.signUp({
     email, password,
     options: { data: { display_name: displayName || '' } }
@@ -185,22 +194,28 @@ window.JudoFirebase = {
 };
 
 // Восстанавливаем сессию при загрузке страницы (аналог onAuthStateChanged).
-sb.auth.getSession().then(async ({ data }) => {
-  if (data.session && data.session.user) {
-    const user = await buildUser(data.session.user);
-    saveUserCache(user);
-    emitAuthState(user);
-  } else {
-    clearUserCache();
+if (sb) {
+  sb.auth.getSession().then(async ({ data }) => {
+    if (data.session && data.session.user) {
+      const user = await buildUser(data.session.user);
+      saveUserCache(user);
+      emitAuthState(user);
+    } else {
+      clearUserCache();
+      window.dispatchEvent(new Event('judo:firebase-ready'));
+    }
+  }).catch(() => {
     window.dispatchEvent(new Event('judo:firebase-ready'));
-  }
-}).catch(() => {
-  window.dispatchEvent(new Event('judo:firebase-ready'));
-});
+  });
 
-sb.auth.onAuthStateChange((event) => {
-  if (event === 'SIGNED_OUT') {
-    clearUserCache();
-    emitAuthState(null);
-  }
-});
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      clearUserCache();
+      emitAuthState(null);
+    }
+  });
+} else {
+  // Библиотека Supabase не загрузилась — приложение продолжает работать
+  // локально (IndexedDB), просто без входа в аккаунт и синхронизации.
+  window.dispatchEvent(new Event('judo:firebase-ready'));
+}
