@@ -107,7 +107,7 @@
   function friendlyNetworkError(e){
     const msg = String(e?.message || e || '');
     if(/Таймаут|network|unavailable|Failed to fetch|ERR_|offline/i.test(msg)){
-      return 'Нет связи с сервером Firebase (в России иногда нужен VPN). Работаем локально — данные сохранены на телефоне.';
+      return 'Нет связи с сервером. Работаем локально — данные сохранены на телефоне.';
     }
     return 'Ошибка синхронизации: ' + msg;
   }

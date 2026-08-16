@@ -1,0 +1,206 @@
+// ================= SUPABASE BACKEND (замена yandex-backend.js) =================
+// Сохраняет ТОТ ЖЕ публичный интерфейс window.JudoFirebase, которым
+// пользуются roster.js, backup-sync.js, ai-coach.js, firebase-auth-ui.js,
+// pro-features.js — поэтому их не пришлось переписывать.
+//
+// Заполните SUPABASE_URL и SUPABASE_ANON_KEY данными вашего проекта
+// (Supabase Dashboard → Project Settings → API). Оба значения публичные,
+// их можно смело держать в коде фронтенда — доступ к данным ограничен
+// правилами RLS в базе (см. supabase/sql/schema.sql).
+const SUPABASE_URL = 'https://aiwkzolbyuvnmdypwzzg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_NfXrK4ZdrH1f_Pdo0mhasA_BH0GmcM8';
+
+// supabase-js подключается отдельным <script> тегом перед этим файлом
+// (см. index.html) и создаёт глобальную переменную window.supabase.
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const USER_KEY = 'jc_supabase_user'; // {uid,email,isPro} — кэш для синхронного getCurrentUser()
+
+let currentUser = null;
+try {
+  const cached = localStorage.getItem(USER_KEY);
+  if (cached) currentUser = JSON.parse(cached);
+} catch (e) {}
+
+function saveUserCache(user) {
+  currentUser = user;
+  try { localStorage.setItem(USER_KEY, JSON.stringify(user)); } catch (e) {}
+}
+function clearUserCache() {
+  currentUser = null;
+  try { localStorage.removeItem(USER_KEY); } catch (e) {}
+}
+function emitAuthState(user) {
+  window.dispatchEvent(new CustomEvent('judo:firebase-auth-state', { detail: { user, profile: user } }));
+  window.dispatchEvent(new Event('judo:firebase-ready'));
+}
+
+async function buildUser(sessionUser) {
+  if (!sessionUser) return null;
+  let isPro = false;
+  try {
+    const { data } = await sb.from('profiles').select('is_pro').eq('id', sessionUser.id).single();
+    isPro = !!(data && data.is_pro);
+  } catch (e) {}
+  return { uid: sessionUser.id, email: sessionUser.email, isPro };
+}
+
+// ---- Auth ----
+async function signIn(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message || 'Ошибка входа.');
+  const user = await buildUser(data.user);
+  saveUserCache(user);
+  emitAuthState(user);
+  return user;
+}
+
+async function register({ email, password, displayName }) {
+  const { data, error } = await sb.auth.signUp({
+    email, password,
+    options: { data: { display_name: displayName || '' } }
+  });
+  if (error) throw new Error(error.message || 'Ошибка регистрации.');
+  // Строка в таблице profiles создаётся автоматически триггером в БД
+  // (handle_new_user, см. supabase/sql/schema.sql).
+  const user = { uid: data.user ? data.user.id : null, email, isPro: false };
+  saveUserCache(user);
+  emitAuthState(user);
+  return user;
+}
+
+async function resetPassword(email) {
+  const { error } = await sb.auth.resetPasswordForEmail(email);
+  if (error) throw new Error(error.message || 'Не удалось отправить письмо для сброса пароля.');
+}
+
+async function linkPasswordToCurrentUser(_email, newPassword) {
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message || 'Не удалось сменить пароль.');
+}
+
+async function signOut() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  clearUserCache();
+  emitAuthState(null);
+}
+
+function getCurrentUser() { return currentUser; }
+
+async function getUserProfile() {
+  if (!currentUser) return null;
+  try {
+    const { data } = await sb.from('profiles').select('is_pro, display_name').eq('id', currentUser.uid).single();
+    if (data) {
+      currentUser.isPro = !!data.is_pro;
+      saveUserCache(currentUser);
+    }
+  } catch (e) {}
+  return currentUser;
+}
+
+async function setProStatus(isPro) {
+  if (!currentUser) return;
+  const { error } = await sb.from('profiles').update({ is_pro: !!isPro }).eq('id', currentUser.uid);
+  if (error) throw new Error(error.message || 'Не удалось обновить статус Pro.');
+  currentUser.isPro = !!isPro;
+  saveUserCache(currentUser);
+}
+
+// ---- Данные (dump/apply — таблица user_data: ключ-значение на пользователя) ----
+async function uploadDataDump(entries) {
+  if (!currentUser) throw new Error('Нужно войти в аккаунт.');
+  const rows = (entries || []).map(({ key, value }) => ({
+    uid: currentUser.uid, key, value, updated_at: new Date().toISOString()
+  }));
+  if (!rows.length) return { ok: true };
+  const { error } = await sb.from('user_data').upsert(rows, { onConflict: 'uid,key' });
+  if (error) throw new Error(error.message || 'Ошибка выгрузки данных.');
+  return { ok: true };
+}
+
+async function downloadDataDump() {
+  if (!currentUser) throw new Error('Нужно войти в аккаунт.');
+  const { data, error } = await sb.from('user_data').select('key, value').eq('uid', currentUser.uid);
+  if (error) throw new Error(error.message || 'Ошибка загрузки данных.');
+  const result = {};
+  (data || []).forEach((row) => { result[row.key] = row.value; });
+  return result;
+}
+
+// ---- ИИ-тренер ----
+// Лимиты и обращение к YandexGPT/Gemini выполняются в Edge Function —
+// секретные ключи ИИ никогда не попадают в код фронтенда.
+async function callEdge(fn, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session ? session.access_token : SUPABASE_ANON_KEY;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'apikey': SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify(body || {})
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Ошибка сервера (${res.status})`);
+  return data;
+}
+
+async function checkAiUsage(mode) {
+  return callEdge('ai-usage', { mode });
+}
+async function createAiChat(mode, title) {
+  if (!currentUser) throw new Error('Нужно войти в аккаунт.');
+  const { data, error } = await sb.from('ai_chats')
+    .insert({ uid: currentUser.uid, mode, title }).select('id').single();
+  if (error) throw new Error(error.message || 'Не удалось создать чат.');
+  return data.id;
+}
+async function listAiChats() {
+  if (!currentUser) return [];
+  const { data, error } = await sb.from('ai_chats')
+    .select('*').eq('uid', currentUser.uid).order('updated_at', { ascending: false });
+  if (error) throw new Error(error.message || 'Не удалось получить список чатов.');
+  return data || [];
+}
+async function listAiMessages(chatId) {
+  const { data, error } = await sb.from('ai_messages')
+    .select('*').eq('chat_id', chatId).order('created_at', { ascending: true });
+  if (error) throw new Error(error.message || 'Не удалось получить сообщения.');
+  return data || [];
+}
+async function sendAiMessage(chatId, systemPrompt, history, message) {
+  const res = await callEdge('ai-chat', { chatId, systemPrompt, history, message });
+  return res.text;
+}
+
+window.JudoFirebase = {
+  signIn, register, resetPassword, linkPasswordToCurrentUser,
+  signOut, getCurrentUser, getUserProfile, setProStatus,
+  uploadDataDump, downloadDataDump,
+  checkAiUsage, createAiChat, listAiChats, listAiMessages, sendAiMessage,
+  appCheckReady: () => false
+};
+
+// Восстанавливаем сессию при загрузке страницы (аналог onAuthStateChanged).
+sb.auth.getSession().then(async ({ data }) => {
+  if (data.session && data.session.user) {
+    const user = await buildUser(data.session.user);
+    saveUserCache(user);
+    emitAuthState(user);
+  } else {
+    clearUserCache();
+    window.dispatchEvent(new Event('judo:firebase-ready'));
+  }
+}).catch(() => {
+  window.dispatchEvent(new Event('judo:firebase-ready'));
+});
+
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') {
+    clearUserCache();
+    emitAuthState(null);
+  }
+});

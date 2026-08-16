@@ -5,13 +5,13 @@
 // уведомление, если у него есть повод сделать это (см. showLocalReminder
 // в index.html — это локальные напоминания, работающие без сервера).
 
-const CACHE_VERSION = 'v17-yandex-backend';
+const CACHE_VERSION = 'v18-supabase-backend';
 const CACHE_NAME = `judo-coach-cache-${CACHE_VERSION}`;
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './styles.css',
   './core-data.js', './pro-features.js', './roster.js', './library-ui.js', './library-kyu.js',
   './library-techniques-data.js', './library-render.js', './stats-competitions.js',
   './constructor-timers.js', './backup-sync.js', './navigation-ui.js', './video-tools-misc.js',
-  './video-player.js', './training-intelligence.js', './firebase-auth-ui.js', './fight-review-studio.js', './fight-intelligence.js', './ai-coach.js', './video-feedback.js', './yandex-backend.js', './sw-register.js', './src/core/config/app-config.js', './src/core/video/video-source.js'];
+  './video-player.js', './training-intelligence.js', './firebase-auth-ui.js', './fight-review-studio.js', './fight-intelligence.js', './ai-coach.js', './video-feedback.js', './supabase-backend.js', './sw-register.js', './src/core/config/app-config.js', './src/core/video/video-source.js'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
