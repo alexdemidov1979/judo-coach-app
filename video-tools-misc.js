@@ -48,11 +48,24 @@
     fileInput.addEventListener('change', (e)=>{
       const file = e.target.files[0];
       if(!file) return;
+      statusEl.textContent = 'Загружаю видео…';
       sourceUrl = URL.createObjectURL(file);
       video.src = sourceUrl;
       video.muted = false;
+      const loadTimeout = setTimeout(()=>{
+        statusEl.textContent = 'Видео долго не загружается. Возможно, формат файла не поддерживается — попробуйте другой файл (MP4, H.264).';
+      }, 8000);
+      video.addEventListener('error', function onErr(){
+        clearTimeout(loadTimeout);
+        video.removeEventListener('error', onErr);
+        const codeMap = {1:'загрузка прервана',2:'ошибка сети',3:'не удалось декодировать (формат/кодек не поддерживается)',4:'формат файла не поддерживается'};
+        const code = video.error ? video.error.code : 0;
+        statusEl.textContent = 'Не удалось загрузить видео: ' + (codeMap[code] || 'неизвестная ошибка') + '. Попробуйте файл в формате MP4 (H.264).';
+      }, {once:true});
       video.addEventListener('loadedmetadata', function onMeta(){
+        clearTimeout(loadTimeout);
         video.removeEventListener('loadedmetadata', onMeta);
+        statusEl.textContent = '';
         const maxW = 960;
         const scale = video.videoWidth > maxW ? maxW / video.videoWidth : 1;
         canvas.width = Math.round(video.videoWidth * scale);

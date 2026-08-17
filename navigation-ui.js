@@ -136,6 +136,12 @@
     });
   });
 
+  // Плавающая кнопка "ИИ-тренер" — видна на любом экране приложения.
+  document.getElementById('ai-coach-fab')?.addEventListener('click', ()=>{
+    const tab = document.querySelector('.tab[data-tab="ai-coach"]');
+    if(tab) tab.click();
+  });
+
   // ================= ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" =================
   async function renderToday(){
     const now = new Date();
