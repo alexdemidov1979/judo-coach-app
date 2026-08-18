@@ -637,12 +637,21 @@
   }
 
   document.getElementById('add-session').addEventListener('click', ()=>{
+    // FREE: не более одной тренировки на календарный день.
+    if(window.ProFeatures && !window.ProFeatures.isPro && currentSessions.length >= 1){
+      window.ProFeatures.requirePro('Вторая тренировка в этот день');
+      return;
+    }
     currentSessions.push({id:uid(), time:'09:00', group:'', duration:60, status:'planned', warmup:'', main:'', cooldown:'', notes:'', attendance:[], open:true});
     activeSessionIndex = currentSessions.length-1;
     renderSessions();
   });
 
   document.getElementById('save-day').addEventListener('click', async ()=>{
+    if(window.ProFeatures && !window.ProFeatures.isPro && currentSessions.length > 1){
+      window.ProFeatures.requirePro('Более одной тренировки в день');
+      return;
+    }
     const key = dateKey(selectedDate);
     if(currentSessions.length===0){
       try{ await S.delete(key); }catch(e){}

@@ -388,6 +388,16 @@ body.modal-open{overflow:hidden;}
   #local-video-time{font-size:10px;}
 }
 
+/* ===== Безопасная зона справа под плавающие кнопки (поиск/видео/ИИ) ===== */
+@media(max-width:600px){
+  #global-search-fab,#video-review-fab,#ai-coach-fab{ width:42px!important; height:42px!important; font-size:17px!important; right:10px!important; }
+  #global-search-fab{ bottom:70px!important; }
+  #video-review-fab{ bottom:120px!important; }
+  #ai-coach-fab{ bottom:170px!important; }
+  .today-hero{ padding-right: 58px; }
+  .cal-head{ padding-right: 50px; }
+}
+
 
 /* ===== LIGHT THEME — high readability patch (v2, полная переработка) ===== */
 [data-theme="light"] body{

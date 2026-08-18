@@ -21,14 +21,14 @@
 <a href="#main-content" class="skip-link">Перейти к содержимому</a>
 <div class="app" id="main-content">
 
-  <div class="header" role="banner" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-    <div>
+  <div class="header" role="banner" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+    <div style="min-width:0;">
       <div class="kanji" aria-hidden="true">柔道</div>
       <div class="sub">Помощник тренера</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span id="net-status-badge" style="display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:20px;background:var(--ok);color:#fff;white-space:nowrap;">🟢 Онлайн</span>
-      <button id="sos-btn" title="Экстренная связь с родителями" style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:var(--belt-red);color:#fff;border:none;font-size:18px;font-weight:700;cursor:pointer;">SOS</button>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:1;min-width:0;">
+      <span id="net-status-badge" style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:5px 8px;border-radius:20px;background:var(--ok);color:#fff;white-space:nowrap;flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">🟢 Онлайн</span>
+      <button id="sos-btn" title="Экстренная связь с родителями" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--belt-red);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;padding:0;">SOS</button>
     </div>
   </div>
 
@@ -109,7 +109,7 @@
   <div class="offline-note">Данные хранятся локально на этом телефоне и работают без интернета. При каждом нажатии «Сохранить день» в «Загрузки» автоматически добавляется файл-копия — можно почистить старые вручную, когда накопится много.</div>
 
   <div class="card" id="cloud-card" style="margin:0 16px 12px;">
-    <h3 class="section-title">☁️ Облако · Yandex Cloud</h3>
+    <h3 class="section-title">☁️ Облако · Supabase</h3>
     <div id="cloud-setup" style="display:none;"></div>
     <div id="cloud-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
       <button class="btn small" id="firebase-signin" style="display:none;">🔐 Войти в Judo Coach</button>
@@ -117,7 +117,7 @@
         <div id="cloud-account" style="font-size:13px;font-weight:600;"></div>
         <div id="cloud-status" style="font-size:12.5px;color:var(--dim);">Не синхронизировано</div>
         <div id="cloud-sync-badge" style="font-size:12px;color:var(--dim);">⚪ Локальный кэш</div>
-        <div style="font-size:12.5px;color:var(--dim);">Личные данные пользователя хранятся на сервере Yandex Cloud и привязаны к его аккаунту. Локальная копия используется только как офлайн-кэш.</div>
+        <div style="font-size:12.5px;color:var(--dim);">Личные данные пользователя хранятся на сервере Supabase и привязаны к его аккаунту. Локальная копия используется только как офлайн-кэш.</div>
         <button class="btn small" id="firebase-upload">☁️⬆️ Синхронизировать сейчас</button>
         <button class="btn ghost small" id="firebase-download">☁️⬇️ Загрузить с сервера</button>
         <button class="btn ghost small" id="firebase-signout">🚪 Выйти из аккаунта</button>
@@ -573,8 +573,8 @@
     <button id="vr-close" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;">✕</button>
   </div>
   <div id="vr-upload-screen" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;">
-    <div style="color:#ccc;font-size:14px;max-width:340px;">Загрузите видео с телефона — можно рисовать поверх кадра (стрелки, круги, линии) и надиктовывать голосовой комментарий. Готовый разбор сохранится как новый видеофайл на телефоне.</div>
-    <input type="file" id="vr-file-input" accept="video/*" style="color:#fff;">
+    <div style="color:#ccc;font-size:14px;max-width:340px;">Загрузите видео прямо с телефона. Во время записи можно одновременно говорить и рисовать пальцем поверх видео. Итоговый видеоразбор сохраняется отдельным локальным файлом, который можно отправить спортсмену.</div>
+    <input type="file" id="vr-file-input" accept="video/mp4,video/webm,video/quicktime,video/*" style="color:#fff;">
   </div>
   <div id="vr-work-screen" style="display:none;flex:1;flex-direction:column;">
     <div style="position:relative;flex:1;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;">
@@ -592,12 +592,12 @@
       </span>
     </div>
     <div style="display:flex;gap:8px;padding:8px 10px 14px;background:#111820;">
-      <button class="btn gold small" id="vr-record" style="flex:1;">🎙 Записать разбор (видео + голос)</button>
+      <button class="btn gold small" id="vr-record" style="flex:1;">🔴 Записать разбор: голос + рисунок поверх видео</button>
     </div>
     <div id="vr-status" style="color:#ccc;font-size:12.5px;padding:0 12px 10px;"></div>
     <div id="vr-result" style="display:none;padding:0 12px 14px;">
       <video id="vr-result-video" controls style="width:100%;border-radius:8px;"></video>
-      <a id="vr-download" class="btn small" style="display:block;text-align:center;margin-top:8px;" download="razbor-video.webm">⬇️ Сохранить файл</a>
+      <a id="vr-download" class="btn small" style="display:block;text-align:center;margin-top:8px;" download="razbor-video.webm">📱 Сохранить / отправить спортсмену</a>
     </div>
   </div>
 </div>
@@ -651,6 +651,7 @@
 <script src="roster.js"></script>
 <script src="athlete-core.js"></script>
 <script src="library-ui.js"></script>
+<script src="drive-video-links.js?v=4.1.1"></script>
 <script src="library-kyu.js"></script>
 <script src="library-techniques-data.js"></script>
 <script src="library-render.js"></script>

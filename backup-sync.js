@@ -208,16 +208,16 @@
       }
       cloudInitializedForUid = currentFirebaseUser.uid;
       showCloudSignedIn(true);
-      setCloudStatus('Загружаем данные аккаунта из облака…', '🟡 Firebase');
+      setCloudStatus('Загружаем данные аккаунта из облака…', '🟡 Supabase');
       try{
         const docs = await listCloudDocs(currentFirebaseUser.uid);
         const realDocs = docs.filter(d => d.id !== encodeKey('__meta__'));
         if(realDocs.length){ await downloadFromFirebase(true); }
-        else { setCloudStatus('Firebase готов (новый аккаунт, данных пока нет)', '🟢 Firebase Cloud'); }
+        else { setCloudStatus('Supabase готов (новый аккаунт, данных пока нет)', '🟢 Supabase Cloud'); }
         localStorage.setItem(OWNER_KEY, currentFirebaseUser.uid);
       }catch(e){
         console.error('Account switch sync failed:', e);
-        setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Firebase');
+        setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Supabase');
       }
       return;
     }
@@ -227,7 +227,7 @@
     showCloudSignedIn(true);
     const account = $('cloud-account');
     if(account) account.textContent = `👤 ${currentFirebaseUser.email || currentFirebaseUser.displayName || 'Пользователь'}`;
-    setCloudStatus('Проверяем Firebase…', '🟡 Firebase');
+    setCloudStatus('Проверяем Supabase…', '🟡 Supabase');
 
     try{
       const docs = await listCloudDocs(currentFirebaseUser.uid);
@@ -239,13 +239,13 @@
         if(localKeys.length){
           await uploadDumpToFirebase(true);
         } else {
-          setCloudStatus('Firebase готов', '🟢 Firebase Cloud');
+          setCloudStatus('Supabase готов', '🟢 Supabase Cloud');
         }
       } else if(localKeys.length){
         // Do not silently destroy either copy. Ask once on first login to this device.
         const decisionKey = `firebase_sync_choice_${currentFirebaseUser.uid}`;
         if(!localStorage.getItem(decisionKey)){
-          const useCloud = confirm('Для этого аккаунта уже найдены данные в Firebase.\n\nОК — загрузить данные из Firebase на это устройство.\nОтмена — оставить локальные данные и сохранить их в Firebase поверх облачной версии.');
+          const useCloud = confirm('Для этого аккаунта уже найдены данные на сервере.\n\nОК — загрузить данные с сервера на это устройство.\nОтмена — оставить локальные данные и сохранить их на сервере поверх облачной версии.');
           localStorage.setItem(decisionKey, useCloud ? 'cloud' : 'local');
           if(useCloud) await downloadFromFirebase(true);
           else await uploadDumpToFirebase(true);
@@ -259,7 +259,7 @@
       }
     }catch(e){
       console.error('Firebase login sync failed:', e);
-      setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Firebase');
+      setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Supabase');
     }
   }
 
@@ -279,7 +279,7 @@
     const text = await file.text();
     let dump;
     try{ dump = JSON.parse(text); }catch(e){ alert('Файл повреждён или не в формате резервной копии.'); return; }
-    if(!confirm('Импорт заменит текущие данные локального кэша. После импорта данные можно синхронизировать в Firebase. Продолжить?')) return;
+    if(!confirm('Импорт заменит текущие данные локального кэша. После импорта данные можно синхронизировать с сервером. Продолжить?')) return;
     await applyDump(dump);
     if(currentFirebaseUser) await uploadDumpToFirebase(true);
     alert('Импорт завершён.');
@@ -296,13 +296,13 @@
       try{
         if(!window.JudoFirebase) throw new Error('Firebase ещё не инициализирован.');
         const s=$('main-auth-status');
-        if(s) s.textContent='Открываем безопасный вход Firebase…';
+        if(s) s.textContent='Открываем безопасный вход…';
         await window.JudoFirebase.signIn();
       }catch(e){
         console.error('Main Firebase sign-in failed:', e);
         const s=$('main-auth-status');
         if(s) s.textContent='Ошибка входа: '+(e?.code || e?.message || 'неизвестная ошибка');
-        alert('Не удалось начать вход через Firebase.\n\n'+(e?.code || '')+'\n'+(e?.message || e));
+        alert('Не удалось начать вход.\n\n'+(e?.code || '')+'\n'+(e?.message || e));
       }
     });
     $('main-firebase-signout')?.addEventListener('click', async ()=>{
@@ -344,7 +344,7 @@
       showCloudSignedIn(true);
       const account=$('cloud-account');
       if(account) account.textContent=`👤 ${currentFirebaseUser.email || currentFirebaseUser.displayName || 'Пользователь'}`;
-      if(mainStatus) mainStatus.textContent='Авторизация Firebase выполнена';
+      if(mainStatus) mainStatus.textContent='Авторизация выполнена';
       if(mainUser) mainUser.textContent=`👤 ${currentFirebaseUser.email || currentFirebaseUser.displayName || 'Пользователь'}${detail.profile?.primaryRole ? ' · '+detail.profile.primaryRole : ''}`;
       if(mainUser) mainUser.style.display='block';
       if(mainActions) mainActions.style.display='flex';
@@ -353,8 +353,8 @@
     }else{
       cloudInitializedForUid=null;
       showCloudSignedIn(false);
-      setCloudStatus('Войдите, чтобы включить Firebase Cloud','⚪ Не подключено');
-      if(mainStatus) mainStatus.textContent='Вход и регистрация через Firebase · email + пароль';
+      setCloudStatus('Войдите, чтобы включить облачную синхронизацию','⚪ Не подключено');
+      if(mainStatus) mainStatus.textContent='Вход и регистрация · email + пароль';
       if(mainUser) mainUser.style.display='none';
       if(mainActions) mainActions.style.display='none';
       if(mainSignin) mainSignin.style.display='';
@@ -370,8 +370,8 @@
   });
   window.addEventListener('judo:firebase-auth-error', e=>{
     const err=e.detail||{};
-    setCloudStatus('Ошибка авторизации', '🔴 Firebase');
-    alert('Firebase не смог завершить вход.\n\n'+(err.message||err.code||'Неизвестная ошибка'));
+    setCloudStatus('Ошибка авторизации', '🔴 Supabase');
+    alert('Не удалось завершить вход.\n\n'+(err.message||err.code||'Неизвестная ошибка'));
   });
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initUi,{once:true});

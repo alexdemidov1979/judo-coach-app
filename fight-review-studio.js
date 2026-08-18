@@ -121,8 +121,6 @@
     if(bar) bar.style.display=isLocal()?'flex':'none';
     const source=$('vm-local-source');
     if(source) source.style.display=isLocal()?'flex':'none';
-    const drive=$('vm-local-upload-drive');
-    if(drive) drive.style.display=isLocal()?'flex':'none';
     const seek=$('local-video-seek-row');
     if(seek) seek.style.display=isLocal()?'flex':'none';
   }
@@ -261,7 +259,6 @@
 
   async function openLocalFile(file){
     if(!file || !file.type.startsWith('video/')){ alert('Выберите видеофайл.'); return; }
-    if(window.ProFeatures && !window.ProFeatures.requirePro('Разбор видео схваток')) return;
     if(localObjectUrl) URL.revokeObjectURL(localObjectUrl);
     localObjectUrl=URL.createObjectURL(file);
     localVideo=ensureLocalVideo();
@@ -285,26 +282,8 @@
     try{ await localVideo.play(); }catch(e){}
   }
 
-  async function uploadToDrive(){
-    if(!localVideo || !currentReview) return;
-    const api=window.JudoCloud;
-    if(!api?.uploadBlob){ alert('Сначала войдите в Google и подключите Google Диск.'); return; }
-    const fileInput=$('vm-local-file');
-    const file=fileInput?.files?.[0];
-    if(!file){ alert('Исходный файл не найден. Загрузите видео ещё раз.'); return; }
-    setStatus('Загрузка видео в Google Диск…');
-    try{
-      const result=await api.uploadBlob(file,file.name,file.type||'video/mp4');
-      if(!result?.webViewLink && !result?.id) throw new Error('Google Drive не вернул идентификатор файла');
-      const url=result.webViewLink || `https://drive.google.com/file/d/${result.id}/view`;
-      currentReview.cloudFileId=result.id;
-      currentReview.cloudUrl=url;
-      await writeReview();
-      setStatus('Видео сохранено в Google Диск. Разбор сохранён отдельно и привязан к этому файлу.');
-    }catch(e){
-      setStatus('Ошибка загрузки: '+(e?.message||e));
-    }
-  }
+  // Пользовательские видео никогда не загружаются в облако.
+  // Исходник, разбор и экспорт хранятся локально на устройстве.
 
   function newMarker(){
     selectedMarkerId=null; clearDrawing();
@@ -345,7 +324,7 @@
         return true;
       }catch(e){
         console.error('Сохранение через Capacitor не удалось:', e);
-        alert('Не удалось открыть системное меню «Поделиться»: '+(e?.message||e)+'\nВидео будет сохранено как обычная загрузка.');
+        alert('Не удалось открыть системное меню «Поделиться»: '+(e?.message||e)+'\nФайл останется доступен локально через обычное сохранение.');
       }
     }
     // Обычный браузер (или плагины Capacitor недоступны) — просто скачиваем файл.
@@ -359,7 +338,6 @@
 
   async function exportVideoWithAnnotations(){
     if(!localVideo || !currentReview){ setStatus('Сначала загрузите видео для разбора.'); return; }
-    if(window.ProFeatures && !window.ProFeatures.requirePro('Экспорт видео с пометками')) return;
     if(!supportsExport()){
       alert('Этот браузер/WebView не поддерживает запись видео (captureStream/MediaRecorder).\n'+
             'На Android обычно работает; на iOS (Safari/WKWebView) эта функция пока недоступна — так ограничивает сама Apple.');
@@ -475,7 +453,6 @@
   $('vm-local-frame-forward')?.addEventListener('click',()=>{if(localVideo)localVideo.currentTime=Math.min(localVideo.duration||Infinity,localVideo.currentTime+1/25);});
   $('vm-local-speed')?.addEventListener('change',e=>{if(localVideo)localVideo.playbackRate=Number(e.target.value)||1;});
   $('vm-local-seek')?.addEventListener('input',e=>{if(localVideo)localVideo.currentTime=Number(e.target.value)||0;});
-  $('vm-local-upload-drive')?.addEventListener('click',uploadToDrive);
   $('vm-annotate')?.addEventListener('click',()=>setAnnotate(!annotate));
   $('vm-marker')?.addEventListener('click',captureMarker);
   $('vm-save-feedback')?.addEventListener('click',saveMarker);

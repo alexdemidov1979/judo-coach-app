@@ -52,6 +52,12 @@
     const rBtn = document.getElementById('vm-src-rutube');
     const dBtn = document.getElementById('vm-src-drive');
     if(!rBtn || !dBtn) return;
+    // Drive link can be restored by the standalone bridge if an older cached
+    // data object reached the player.
+    if(!t.video2 && window.JUDO_TERMINOLOGY_TECHNIQUES){
+      const found = window.JUDO_TERMINOLOGY_TECHNIQUES.find(x=>x && x.romaji===t.romaji && x.video2);
+      if(found) t.video2 = found.video2;
+    }
     rBtn.style.display = t.video ? 'flex' : 'none';
     dBtn.style.display = t.video2 ? 'flex' : 'none';
     rBtn.classList.toggle('active', currentSourcePref==='rutube');

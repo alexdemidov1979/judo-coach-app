@@ -7,13 +7,13 @@
 // Когда приложение будет опубликовано в RuStore / App Store, вызов
 // showUpsell() нужно будет заменить на реальную покупку через
 // RuStore Pay SDK (Android) или StoreKit (iOS), а после успешной
-// оплаты — вызывать ProFeatures.setPro(true) и сохранять это в Firestore.
+// оплаты — вызывать ProFeatures.setPro(true) и сохранять это в профиле пользователя на сервере.
 (function () {
   const LOCAL_KEY = 'jc_pro_status';
 
   // Что ограничено в бесплатной версии.
   const FREE_LIMITS = {
-    maxAthletes: 12,        // всего учеников во всех группах
+    maxAthletes: 20,        // всего учеников во всех группах
     maxTechniqueRank: 5,    // видео-библиотека: бесплатно открыт только базовый уровень 5 кю
     cloudSync: false,       // облачная синхронизация/резервная копия через сервер
     excelImport: false,     // импорт списка учеников из Excel/CSV
