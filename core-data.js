@@ -662,6 +662,60 @@
     try{ await exportAllData(true); }catch(e){}
   });
 
+  // ---- копирование плана на следующую неделю ----
+  // Копируем именно текущую рабочую версию currentSessions, поэтому
+  // пользователю не обязательно сначала нажимать «Сохранить день».
+  document.getElementById('copy-next-week').addEventListener('click', async ()=>{
+    try{
+      if(!selectedDate){ alert('Сначала выберите день.'); return; }
+      if(!Array.isArray(currentSessions) || currentSessions.length===0){
+        alert('В выбранном дне нет тренировок для копирования.');
+        return;
+      }
+
+      const targetDate = new Date(selectedDate);
+      targetDate.setDate(targetDate.getDate() + 7);
+      const targetKey = dateKey(targetDate);
+      let targetSessions = [];
+      try{
+        const existing = await S.get(targetKey);
+        if(existing) targetSessions = JSON.parse(existing.value) || [];
+      }catch(e){}
+
+      // В FREE не позволяем обходить лимит «1 тренировка в день»
+      // через копирование.
+      if(window.ProFeatures && !window.ProFeatures.isPro && targetSessions.length > 0){
+        window.ProFeatures.requirePro('Копирование на день, где уже есть тренировка');
+        return;
+      }
+
+      const targetLabel = targetDate.toLocaleDateString('ru-RU', {
+        weekday:'long', day:'numeric', month:'long', year:'numeric'
+      });
+      const action = targetSessions.length
+        ? `На ${targetLabel} уже есть ${targetSessions.length} тренировк(а/и).\n\nЗаменить их копией выбранного дня?`
+        : `Скопировать ${currentSessions.length} тренировк(у/и) на ${targetLabel}?`;
+      if(!confirm(action)) return;
+
+      const copied = currentSessions.map(src=>({
+        ...JSON.parse(JSON.stringify(src)),
+        id: uid(),
+        status: 'planned',
+        attendance: [],
+        attendanceStatus: {},
+        open: false
+      }));
+
+      await S.set(targetKey, JSON.stringify(copied));
+      await renderCalendar();
+      await selectDate(targetDate);
+      alert(`Готово. План скопирован на ${targetLabel}.`);
+    }catch(e){
+      console.error('copy-next-week failed:', e);
+      alert('Не удалось скопировать день. Попробуйте ещё раз.');
+    }
+  });
+
   document.getElementById('clear-day').addEventListener('click', async ()=>{
     if(currentSessions.length===0){ return; }
     const dateLabel = selectedDate.toLocaleDateString('ru-RU');
@@ -680,24 +734,54 @@
   document.getElementById('today-btn').addEventListener('click', ()=>{ viewDate = new Date(); renderCalendar(); selectDate(new Date()); });
 
   // ---- печать / PDF плана дня ----
+  // На Android используем нативный PrintManager через MainActivity.
+  // В обычном браузере открываем отдельное окно и вызываем системную печать.
+  document.getElementById('print-day-pdf').addEventListener('click', async ()=>{
+    try{
+      const html = buildDayPlanHtml(selectedDate, currentSessions);
+      if(window.AndroidPrint && typeof window.AndroidPrint.printHtml === 'function'){
+        window.AndroidPrint.printHtml(html);
+        return;
+      }
+
+      const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+      if(!w){
+        // Если браузер блокирует popup, печатаем текущую страницу как резервный вариант.
+        alert('Браузер заблокировал окно печати. Разрешите всплывающие окна для Judo Coach и повторите.');
+        return;
+      }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(()=>{ try{ w.print(); }catch(e){} }, 500);
+    }catch(e){
+      console.error('print-day-pdf failed:', e);
+      alert('Не удалось открыть печать этого дня.');
+    }
+  });
+
   function escapeHtml(s){
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   }
   function buildDayPlanHtml(date, sessions){
     const dateStr = date.toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric', weekday:'long'});
-    let body = `<h1>Тренировки — ${escapeHtml(dateStr)}</h1>`;
+    let body = `<h1>Judo Coach</h1><h2>Тренировки — ${escapeHtml(dateStr)}</h2>`;
     if(!sessions || sessions.length===0){
       body += '<p>На этот день тренировок пока нет.</p>';
     } else {
       sessions.forEach((s,i)=>{
-        body += `<h2>${i+1}. ${escapeHtml(s.time||'')} — ${escapeHtml(s.group||'Группа не указана')} (${escapeHtml(s.duration||'')} мин)</h2>`;
+        body += `<section class="session"><h3>${i+1}. ${escapeHtml(s.time||'')} — ${escapeHtml(s.group||'Группа не указана')} (${escapeHtml(s.duration||'')} мин)</h3>`;
         COMBINED_HEADERS.forEach(h=>{
           const val = (s[h.key]||'').trim();
           if(val) body += `<p><b>${escapeHtml(h.label)}</b><br>${escapeHtml(val)}</p>`;
         });
+        const att = Array.isArray(s.attendance) ? s.attendance : [];
+        if(att.length) body += `<p><b>Присутствовали:</b> ${escapeHtml(att.join(', '))}</p>`;
+        body += '</section>';
       });
     }
-    return `<html><body>${body}</body></html>`;
+    return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Judo Coach — ${escapeHtml(dateStr)}</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px;line-height:1.45}h1{margin:0 0 4px;font-size:24px}h2{margin:0 0 20px;font-size:18px;font-weight:500}h3{font-size:17px;margin:0 0 12px}.session{border-top:1px solid #ccc;padding:14px 0;page-break-inside:avoid}.session p{margin:8px 0}@page{size:A4;margin:16mm}</style></head><body>${body}</body></html>`;
   }
   // ---- voice notes (per session) ----
   function setupVoiceButtons(){
