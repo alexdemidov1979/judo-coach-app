@@ -19,10 +19,35 @@
     const id = extractRutubeId(url);
     return id ? `https://rutube.ru/play/embed/${id}` : url;
   }
+  // Открывает ссылку в системном браузере телефона (не в окне приложения).
+  // Google Drive отказывается показывать видео внутри встроенного окна
+  // Android-приложения — это ограничение самого Google, куки его не обходят.
+  // Единственный надёжный способ — открыть видео в обычном браузере (Chrome и т.п.).
+  window.__openDriveVideo = function(url){
+    if(!url) return;
+    const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if(isNativeApp){
+      // Переход на "чужой" домен из приложения Capacitor автоматически
+      // открывается во внешнем браузере телефона, а не внутри самого приложения.
+      window.location.href = url;
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
+  };
+
   function playerMarkup(url){
     const driveId = extractDriveId(url);
     if(driveId){
-      // Официальный embed Google Drive — работает на мобильных, в отличие от uc?export=download
+      const viewUrl = `https://drive.google.com/file/d/${driveId}/view`;
+      const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      if(isNativeApp){
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100%;padding:24px;text-align:center;">
+          <div style="font-size:40px;">🎬</div>
+          <div style="font-size:14px;opacity:.75;max-width:280px;">Google Drive не разрешает показывать видео внутри приложения — откройте его в браузере телефона.</div>
+          <button class="btn" onclick="window.__openDriveVideo('${viewUrl}')">▶ Открыть видео в браузере</button>
+        </div>`;
+      }
+      // В обычном браузере / PWA официальный embed Google Drive работает нормально.
       return `<iframe src="https://drive.google.com/file/d/${driveId}/preview" allow="autoplay; clipboard-write" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>`;
     }
     return `<iframe src="${embedUrl(url)}" allow="clipboard-write; autoplay" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>`;

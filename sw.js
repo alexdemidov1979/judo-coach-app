@@ -5,7 +5,7 @@
 // уведомление, если у него есть повод сделать это (см. showLocalReminder
 // в index.html — это локальные напоминания, работающие без сервера).
 
-const CACHE_VERSION = 'v21-drive-sync-telegram-fixed';
+const CACHE_VERSION = 'v22-menu-v2-drive-external';
 const CACHE_NAME = `judo-coach-cache-${CACHE_VERSION}`;
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './styles.css',
   './core-data.js', './drive-video-links.js', './pro-features.js', './roster.js', './library-ui.js', './library-kyu.js',

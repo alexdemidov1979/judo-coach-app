@@ -69,6 +69,27 @@
   .app{ padding-bottom: calc(78px + var(--safe-bottom)) !important; }
   .more-subnav{ display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; }
   .more-subnav .chip{ white-space:nowrap; }
+  .more-subnav.more-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(96px, 1fr));
+    gap:10px;
+    overflow:visible;
+    margin-bottom:0;
+  }
+  .more-tile{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    text-align:center;
+    white-space:normal;
+    line-height:1.25;
+    padding:14px 8px;
+    min-height:78px;
+    border-radius:14px;
+  }
+  .more-tile-ic{ font-size:22px; }
   /* ===== ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" ===== */
   .today-hero{ background:linear-gradient(135deg, var(--navy,#101f3c), #1c2f57); color:#fff; border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:var(--shadow); }
   .today-hero .t-date{ font-size:12px; opacity:.75; text-transform:uppercase; letter-spacing:.08em; }

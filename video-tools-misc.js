@@ -228,19 +228,11 @@
     }
   }
 
-  // Compatibility: older builds called renderDemidovCard during startup,
-  // but the card was removed from the current layout. Keep a safe no-op/visibility
-  // implementation so startup never stops with ReferenceError.
-  window.renderDemidovCard = function renderDemidovCard(state){
-    const el = document.getElementById('telegram-channel-link');
-    if(!el) return;
-    const user = window.JudoFirebase?.getCurrentUser?.();
-    const isAdmin = String(user?.email||'').toLowerCase() === 'peihyei@gmail.com';
-    el.style.display = isAdmin ? 'block' : 'none';
-    if(isAdmin){
-      el.href = 'https://t.me/+WcJ5fH7Xwd4yZWEy';
-    }
-  };
+  // Compatibility: older builds called renderDemidovCard during startup.
+  // The card is always visible now with the public Telegram channel link
+  // (set once in library-ui.js) — no per-user override, no hiding, no
+  // private group link.
+  window.renderDemidovCard = function renderDemidovCard(){};
 
   // ---------- init ----------
   (async function init(){
