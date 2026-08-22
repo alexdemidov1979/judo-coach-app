@@ -149,7 +149,6 @@
 
 <div class="tabs legacy-tabs">
     <div class="tab active" data-tab="today">Сегодня</div>
-    <div class="tab" data-tab="ai-coach">🤖 ИИ-тренер</div>
     <div class="tab" data-tab="rules-pdf">Правила ФДР</div>
     <div class="tab" data-tab="timers">Таймеры</div>
     <div class="tab" data-tab="roster">Ученики</div>
@@ -229,47 +228,6 @@
     <div id="today-next-comp-wrap" style="display:none;">
       <div class="today-section-title">Ближайшее соревнование</div>
       <div class="card" id="today-next-comp"></div>
-    </div>
-  </div>
-
-  <!-- ИИ-ТРЕНЕР (YandexGPT через Yandex Cloud Functions) -->
-  <div class="panel" id="panel-ai-coach">
-    <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">🤖 ИИ-тренер</h3>
-      <div class="empty-hint" style="margin-bottom:10px;">
-        Помогает составлять и улучшать тренировки, подбирать техники и планировать сезон.
-        Не заменяет официальные правила ФДР/IJF — при сомнениях всегда проверяйте первоисточник.
-      </div>
-      <div id="ai-mode-buttons" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <div><label>Группа</label><select id="ai-ctx-group"></select></div>
-        <div><label>Длительность (мин)</label><input type="number" id="ai-ctx-duration" placeholder="60" min="10" max="180"></div>
-        <div><label>Цель занятия</label><input type="text" id="ai-ctx-goal" placeholder="например: техника бросков"></div>
-        <div><label>Инвентарь</label><input type="text" id="ai-ctx-equipment" placeholder="маты, конусы, скакалки"></div>
-        <div style="grid-column:1/-1;">
-          <label>Этап сезона</label>
-          <select id="ai-ctx-season">
-            <option value="">— не указан —</option>
-            <option value="подготовительный">Подготовительный</option>
-            <option value="предсоревновательный">Предсоревновательный</option>
-            <option value="соревновательный">Соревновательный</option>
-            <option value="переходный">Переходный</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <h3 class="section-title" style="margin:0;">Диалог</h3>
-        <button type="button" class="btn small ghost" id="ai-new-chat">🆕 Новый чат</button>
-      </div>
-      <div id="ai-chat-messages" class="ai-chat-messages"></div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <textarea id="ai-chat-input" rows="2" placeholder="Напишите вопрос или уточнение…" style="flex:1;"></textarea>
-        <button type="button" class="btn gold" id="ai-send-btn">Отправить</button>
-      </div>
     </div>
   </div>
 
@@ -598,7 +556,6 @@
     <div class="card" style="margin-bottom:12px;">
       <h3 class="section-title">📚 Помощник и документы</h3>
       <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="ai-coach"><span class="more-tile-ic">🤖</span><span>ИИ-тренер</span></div>
         <div class="chip more-tile" data-subtab="rules-pdf"><span class="more-tile-ic">📜</span><span>Правила</span></div>
       </div>
     </div>
@@ -609,7 +566,6 @@
 
 <button id="global-search-fab" aria-label="Открыть глобальный поиск" style="position:fixed;right:14px;bottom:76px;z-index:60;width:48px;height:48px;border-radius:50%;background:var(--navy,var(--belt-red));color:#fff;border:none;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;">🔍</button>
 <button id="video-review-fab" aria-label="Разбор видео" title="Разбор видео: рисуй и записывай голос поверх" style="position:fixed;right:14px;bottom:132px;z-index:60;width:48px;height:48px;border-radius:50%;background:var(--gold,#c9962c);color:#fff;border:none;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;">🎥</button>
-<button id="ai-coach-fab" aria-label="ИИ-тренер" title="ИИ-тренер" style="position:fixed;right:14px;bottom:188px;z-index:60;width:48px;height:48px;border-radius:50%;background:#4f46e5;color:#fff;border:none;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;">🤖</button>
 
 <div id="video-review-modal" style="display:none;position:fixed;inset:0;z-index:400;background:#0b0f14;flex-direction:column;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111820;">
@@ -821,7 +777,6 @@
 <script src="video-player.js"></script>
 <script src="fight-review-studio.js"></script>
 <script src="fight-intelligence.js"></script>
-<script src="ai-coach.js"></script>
 <script src="training-intelligence.js?v=4.1.0"></script>
 <script src="firebase-auth-ui.js?v=4.1.0"></script>
 

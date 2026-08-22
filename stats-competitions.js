@@ -115,13 +115,23 @@
           alert('Сначала войдите в облачный аккаунт (Judo Coach Cloud) на главном экране — иначе заявки от родителей будет некому получать.');
           return;
         }
+        if(!sb){ alert('Supabase ещё не готов.'); return; }
+        const token = (crypto?.randomUUID ? crypto.randomUUID() : 'jc_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
+        const { error: tokenError } = await sb.from('competition_share_tokens').insert({
+          owner_uid: user.uid, token, competition_id: c.id || null, expires_at: null, is_active: true
+        });
+        if(tokenError){
+          console.error('Competition share token error:', tokenError);
+          alert('Не удалось создать защищённую ссылку. Выполните SQL из supabase/sql/competition_share_token.sql в Supabase.');
+          return;
+        }
         const url = new URL('comp-report.html', location.href);
-        url.searchParams.set('owner', user.uid);
+        url.searchParams.set('token', token);
         url.searchParams.set('comp', c.name || '');
         if(c.date) url.searchParams.set('date', c.date);
         try{
           await navigator.clipboard.writeText(url.toString());
-          alert('Ссылка скопирована! Отправьте её родителям в Telegram/WhatsApp.');
+          alert('Защищённая ссылка скопирована! Отправьте её родителям в Telegram/WhatsApp.');
         }catch(e){
           prompt('Скопируйте ссылку вручную:', url.toString());
         }

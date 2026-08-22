@@ -203,8 +203,8 @@
     _migrationsDone = (async ()=>{
       try{
         const stored = await rawGet(DATA_SCHEMA_KEY);
-        let version = stored ? parseInt(stored, 10) : DATA_SCHEMA_VERSION; // новым пользователям миграции не нужны
-        if(!Number.isFinite(version)) version = DATA_SCHEMA_VERSION;
+        let version = stored ? parseInt(stored, 10) : 1; // старые данные без маркера проходят все миграции
+        if(!Number.isFinite(version)) version = 1;
         while(version < DATA_SCHEMA_VERSION){
           const next = version + 1;
           if(typeof MIGRATIONS[next] === 'function'){

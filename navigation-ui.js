@@ -73,7 +73,7 @@
     }catch(e){
       console.error('Не удалось открыть PDF правил:', e);
       rulesPdfLoaded = false;
-      holder.innerHTML = '<div class="empty-hint">Не удалось открыть файл правил. Проверьте интернет-соединение или откройте файл отдельно кнопкой выше.</div>';
+      holder.innerHTML = '<div class="empty-hint">Не удалось открыть файл правил. Откройте PDF отдельной кнопкой — просмотрщик PDF зависит от устройства.</div>';
     }
   }
 
@@ -95,9 +95,6 @@
       if(t.dataset.tab==='library'){ renderLibCats(); renderLibrary(); renderTerms(); renderKyu(); renderKodokan(); renderRules(); }
       if(t.dataset.tab==='stats'){
         if(!window.ProFeatures || window.ProFeatures.guardPanel('panel-stats','Статистика тренировок')) renderStats();
-      }
-      if(t.dataset.tab==='ai-coach'){
-        window.ProFeatures?.guardPanel('panel-ai-coach','ИИ-тренер');
       }
       if(t.dataset.tab==='exams'){ renderExams(); }
       if(t.dataset.tab==='ofp'){ renderOfp(); }
@@ -135,12 +132,6 @@
       const tab = document.querySelector('.tab[data-tab="'+c.dataset.subtab+'"]');
       if(tab) tab.click();
     });
-  });
-
-  // Плавающая кнопка "ИИ-тренер" — видна на любом экране приложения.
-  document.getElementById('ai-coach-fab')?.addEventListener('click', ()=>{
-    const tab = document.querySelector('.tab[data-tab="ai-coach"]');
-    if(tab) tab.click();
   });
 
   // ================= ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" =================

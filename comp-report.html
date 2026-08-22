@@ -79,7 +79,7 @@
   try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){}
 
   const params = new URLSearchParams(location.search);
-  const ownerUid = params.get('owner') || '';
+  const shareToken = params.get('token') || '';
   const compName = params.get('comp') || '';
   const compDate = params.get('date') || '';
 
@@ -92,24 +92,23 @@
     errEl.style.display = 'none';
     const name = document.getElementById('f-name').value.trim();
     if(!name){ errEl.textContent = 'Укажите ФИО спортсмена.'; errEl.style.display = 'block'; return; }
-    if(!ownerUid || !sb){ errEl.textContent = 'Ссылка неполная или сервис недоступен — попросите у тренера новую ссылку.'; errEl.style.display = 'block'; return; }
+    if(!shareToken || !sb){ errEl.textContent = 'Ссылка неполная или сервис недоступен — попросите у тренера новую ссылку.'; errEl.style.display = 'block'; return; }
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true; btn.textContent = 'Отправляю...';
 
     const payload = {
-      owner_uid: ownerUid,
-      comp_name: document.getElementById('f-comp').value.trim() || null,
-      comp_date: document.getElementById('f-date').value || null,
-      athlete_name: name,
-      matches: document.getElementById('f-matches').value ? Number(document.getElementById('f-matches').value) : null,
-      wins: document.getElementById('f-wins').value ? Number(document.getElementById('f-wins').value) : null,
-      losses: document.getElementById('f-losses').value ? Number(document.getElementById('f-losses').value) : null,
-      place: document.getElementById('f-place').value || null,
-      status: 'pending'
+      p_token: shareToken,
+      p_comp_name: document.getElementById('f-comp').value.trim() || null,
+      p_comp_date: document.getElementById('f-date').value || null,
+      p_athlete_name: name,
+      p_matches: document.getElementById('f-matches').value ? Number(document.getElementById('f-matches').value) : null,
+      p_wins: document.getElementById('f-wins').value ? Number(document.getElementById('f-wins').value) : null,
+      p_losses: document.getElementById('f-losses').value ? Number(document.getElementById('f-losses').value) : null,
+      p_place: document.getElementById('f-place').value || null
     };
 
-    const { error } = await sb.from('competition_reports').insert(payload);
+    const { error } = await sb.rpc('submit_competition_report', payload);
     if(error){
       errEl.textContent = 'Не получилось отправить. Проверьте интернет и попробуйте ещё раз.';
       errEl.style.display = 'block';

@@ -1,6 +1,6 @@
 // ================= SUPABASE BACKEND (замена yandex-backend.js) =================
 // Сохраняет ТОТ ЖЕ публичный интерфейс window.JudoFirebase, которым
-// пользуются roster.js, backup-sync.js, ai-coach.js, firebase-auth-ui.js,
+// пользуются roster.js, backup-sync.js, firebase-auth-ui.js,
 // pro-features.js — поэтому их не пришлось переписывать.
 //
 // Заполните SUPABASE_URL и SUPABASE_ANON_KEY данными вашего проекта
@@ -137,59 +137,10 @@ async function downloadDataDump() {
   return result;
 }
 
-// ---- ИИ-тренер ----
-// Лимиты и обращение к YandexGPT/Gemini выполняются в Edge Function —
-// секретные ключи ИИ никогда не попадают в код фронтенда.
-async function callEdge(fn, body) {
-  const { data: { session } } = await sb.auth.getSession();
-  const token = session ? session.access_token : SUPABASE_ANON_KEY;
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'apikey': SUPABASE_ANON_KEY
-    },
-    body: JSON.stringify(body || {})
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Ошибка сервера (${res.status})`);
-  return data;
-}
-
-async function checkAiUsage(mode) {
-  return callEdge('ai-usage', { mode });
-}
-async function createAiChat(mode, title) {
-  if (!currentUser) throw new Error('Нужно войти в аккаунт.');
-  const { data, error } = await sb.from('ai_chats')
-    .insert({ uid: currentUser.uid, mode, title }).select('id').single();
-  if (error) throw new Error(error.message || 'Не удалось создать чат.');
-  return data.id;
-}
-async function listAiChats() {
-  if (!currentUser) return [];
-  const { data, error } = await sb.from('ai_chats')
-    .select('*').eq('uid', currentUser.uid).order('updated_at', { ascending: false });
-  if (error) throw new Error(error.message || 'Не удалось получить список чатов.');
-  return data || [];
-}
-async function listAiMessages(chatId) {
-  const { data, error } = await sb.from('ai_messages')
-    .select('*').eq('chat_id', chatId).order('created_at', { ascending: true });
-  if (error) throw new Error(error.message || 'Не удалось получить сообщения.');
-  return data || [];
-}
-async function sendAiMessage(chatId, systemPrompt, history, message) {
-  const res = await callEdge('ai-chat', { chatId, systemPrompt, history, message });
-  return res.text;
-}
-
 window.JudoFirebase = {
   signIn, register, resetPassword, linkPasswordToCurrentUser,
   signOut, getCurrentUser, getUserProfile, setProStatus,
   uploadDataDump, downloadDataDump,
-  checkAiUsage, createAiChat, listAiChats, listAiMessages, sendAiMessage,
   appCheckReady: () => false
 };
 
