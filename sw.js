@@ -5,11 +5,11 @@
 // уведомление, если у него есть повод сделать это (см. showLocalReminder
 // в index.html — это локальные напоминания, работающие без сервера).
 
-const CACHE_VERSION = 'v22-menu-v2-drive-external';
+const CACHE_VERSION = 'v24-parent-comp-reports';
 const CACHE_NAME = `judo-coach-cache-${CACHE_VERSION}`;
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './styles.css',
   './core-data.js', './drive-video-links.js', './pro-features.js', './roster.js', './library-ui.js', './library-kyu.js',
-  './library-techniques-data.js', './library-render.js', './stats-competitions.js',
+  './library-techniques-data.js', './library-render.js', './stats-competitions.js', './ofp-attestation.js', './comp-report.html',
   './constructor-timers.js', './backup-sync.js', './navigation-ui.js', './video-tools-misc.js',
   './video-player.js', './training-intelligence.js', './firebase-auth-ui.js', './fight-review-studio.js', './fight-intelligence.js', './ai-coach.js', './video-feedback.js', './supabase-js.vendor.js', './supabase-backend.js', './sw-register.js', './src/core/config/app-config.js', './src/core/video/video-source.js'];
 

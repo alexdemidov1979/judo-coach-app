@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Результат соревнования — Judo Coach</title>
+<style>
+  :root{ --gold:#c9a227; --ink:#1b1b1b; --bg:#f6f3ec; --card:#fff; --line:#e4ddcc; --dim:#8a8272; }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); padding:20px 16px 60px; }
+  .wrap{ max-width:440px; margin:0 auto; }
+  h1{ font-size:19px; margin:0 0 4px; }
+  .sub{ color:var(--dim); font-size:13px; margin-bottom:18px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  label{ display:block; font-size:12.5px; color:var(--dim); margin:12px 0 4px; }
+  label:first-child{ margin-top:0; }
+  input, select{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); font-size:15px; background:#fff; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn{ width:100%; padding:13px; margin-top:16px; border:none; border-radius:12px; background:var(--gold); color:#1b1b1b; font-weight:700; font-size:15px; cursor:pointer; }
+  .btn:disabled{ opacity:.5; }
+  .ok{ text-align:center; padding:30px 10px; }
+  .ok .ic{ font-size:44px; margin-bottom:10px; }
+  .err{ color:#b23; font-size:13px; margin-top:10px; display:none; }
+  .hint{ font-size:12px; color:var(--dim); margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🥋 Результат соревнования</h1>
+  <div class="sub" id="comp-context">Заполните, пожалуйста, результат — тренер увидит это в приложении.</div>
+
+  <div class="card" id="form-card">
+    <label>ФИО спортсмена</label>
+    <input type="text" id="f-name" placeholder="Иванов Иван">
+
+    <label>Название соревнования</label>
+    <input type="text" id="f-comp" placeholder="напр. Первенство Сочи">
+
+    <label>Дата</label>
+    <input type="date" id="f-date">
+
+    <div class="row2">
+      <div>
+        <label>Встреч</label>
+        <input type="number" min="0" id="f-matches" placeholder="0">
+      </div>
+      <div>
+        <label>Побед</label>
+        <input type="number" min="0" id="f-wins" placeholder="0">
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label>Поражений</label>
+        <input type="number" min="0" id="f-losses" placeholder="0">
+      </div>
+      <div>
+        <label>Место</label>
+        <select id="f-place">
+          <option value="">без места</option>
+          <option value="1">1 место 🥇</option>
+          <option value="2">2 место 🥈</option>
+          <option value="3">3 место 🥉</option>
+          <option value="participation">участие</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn" id="submit-btn">Отправить тренеру</button>
+    <div class="err" id="err-msg"></div>
+  </div>
+</div>
+
+<script src="supabase-js.vendor.js"></script>
+<script>
+  const SUPABASE_URL = 'https://aiwkzolbyuvnmdypwzzg.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_NfXrK4ZdrH1f_Pdo0mhasA_BH0GmcM8';
+  let sb = null;
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){}
+
+  const params = new URLSearchParams(location.search);
+  const ownerUid = params.get('owner') || '';
+  const compName = params.get('comp') || '';
+  const compDate = params.get('date') || '';
+
+  if(compName) document.getElementById('f-comp').value = compName;
+  if(compDate) document.getElementById('f-date').value = compDate;
+  if(compName) document.getElementById('comp-context').textContent = `Соревнование: ${compName}${compDate ? ' · ' + new Date(compDate).toLocaleDateString('ru-RU') : ''}`;
+
+  document.getElementById('submit-btn').addEventListener('click', async ()=>{
+    const errEl = document.getElementById('err-msg');
+    errEl.style.display = 'none';
+    const name = document.getElementById('f-name').value.trim();
+    if(!name){ errEl.textContent = 'Укажите ФИО спортсмена.'; errEl.style.display = 'block'; return; }
+    if(!ownerUid || !sb){ errEl.textContent = 'Ссылка неполная или сервис недоступен — попросите у тренера новую ссылку.'; errEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true; btn.textContent = 'Отправляю...';
+
+    const payload = {
+      owner_uid: ownerUid,
+      comp_name: document.getElementById('f-comp').value.trim() || null,
+      comp_date: document.getElementById('f-date').value || null,
+      athlete_name: name,
+      matches: document.getElementById('f-matches').value ? Number(document.getElementById('f-matches').value) : null,
+      wins: document.getElementById('f-wins').value ? Number(document.getElementById('f-wins').value) : null,
+      losses: document.getElementById('f-losses').value ? Number(document.getElementById('f-losses').value) : null,
+      place: document.getElementById('f-place').value || null,
+      status: 'pending'
+    };
+
+    const { error } = await sb.from('competition_reports').insert(payload);
+    if(error){
+      errEl.textContent = 'Не получилось отправить. Проверьте интернет и попробуйте ещё раз.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Отправить тренеру';
+      return;
+    }
+    document.getElementById('form-card').innerHTML = `
+      <div class="ok">
+        <div class="ic">✅</div>
+        <div><b>Отправлено!</b></div>
+        <div class="hint">Тренер увидит результат в приложении.</div>
+      </div>`;
+  });
+</script>
+</body>
+</html>

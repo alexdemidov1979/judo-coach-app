@@ -72,10 +72,13 @@
           <span style="color:var(--dim);font-weight:400;">${c.date ? new Date(c.date).toLocaleDateString('ru-RU') : ''}</span>
         </div>
         <div class="desc">${c.place||''}${c.ageCategory?(' · '+c.ageCategory):''} · участников: ${parts.length}</div>
+        <div class="actions" style="margin:6px 0 0;">
+          <button class="btn secondary comp-share-btn" data-i="${i}" style="font-size:12.5px;padding:7px 10px;">🔗 Ссылка для родителей</button>
+        </div>
         <div class="comp-detail" data-cslot="${i}" style="${openCompIndex===i?'':'display:none;'}">
           ${parts.length ? parts.map((p,pi)=>`
             <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;">
-              <div style="flex:1;">${p.name}${p.weightCat?(' · '+p.weightCat+' кг'):''}</div>
+              <div style="flex:1;">${p.name}${p.weightCat?(' · '+p.weightCat+' кг'):''}${(p.wins!=null || p.matches!=null)?(' · '+(p.wins??'?')+'/'+(p.matches??'?')+' побед'):''}</div>
               <select class="comp-place-select" data-ci="${i}" data-pi="${pi}" style="width:auto;padding:4px 6px;">
                 <option value="" ${!p.place?'selected':''}>без места</option>
                 <option value="1" ${p.place==='1'?'selected':''}>1 место 🥇</option>
@@ -100,6 +103,28 @@
         const i = Number(t.dataset.i);
         openCompIndex = openCompIndex===i ? null : i;
         renderCompetitions();
+      });
+    });
+    el.querySelectorAll('.comp-share-btn').forEach(b=>{
+      b.addEventListener('click', async (ev)=>{
+        ev.stopPropagation();
+        const i = Number(b.dataset.i);
+        const c = comps[i];
+        const user = window.JudoFirebase?.getCurrentUser?.();
+        if(!user?.uid){
+          alert('Сначала войдите в облачный аккаунт (Judo Coach Cloud) на главном экране — иначе заявки от родителей будет некому получать.');
+          return;
+        }
+        const url = new URL('comp-report.html', location.href);
+        url.searchParams.set('owner', user.uid);
+        url.searchParams.set('comp', c.name || '');
+        if(c.date) url.searchParams.set('date', c.date);
+        try{
+          await navigator.clipboard.writeText(url.toString());
+          alert('Ссылка скопирована! Отправьте её родителям в Telegram/WhatsApp.');
+        }catch(e){
+          prompt('Скопируйте ссылку вручную:', url.toString());
+        }
       });
     });
     el.querySelectorAll('.comp-add-participant').forEach(sel=>{
@@ -165,3 +190,53 @@
     renderCompetitions();
   });
 
+  // ---- Заявки от родителей (форма comp-report.html → таблица competition_reports) ----
+  async function renderCompReports(){
+    const el = document.getElementById('comp-reports-list');
+    if(!el) return;
+    const user = window.JudoFirebase?.getCurrentUser?.();
+    if(!user?.uid || !sb){
+      el.innerHTML = '<div class="empty-hint">Войдите в облачный аккаунт (Judo Coach Cloud) на главном экране, чтобы получать заявки от родителей.</div>';
+      return;
+    }
+    el.innerHTML = '<div class="empty-hint">Загружаю заявки…</div>';
+    const { data, error } = await sb.from('competition_reports')
+      .select('*').eq('owner_uid', user.uid).eq('status','pending')
+      .order('created_at', { ascending:false });
+    if(error){ el.innerHTML = '<div class="empty-hint">Не удалось загрузить заявки. Проверьте интернет.</div>'; return; }
+    if(!data || !data.length){ el.innerHTML = '<div class="empty-hint">Новых заявок нет.</div>'; return; }
+    el.innerHTML = data.map(r=>`
+      <div class="lib-item" style="padding:10px 12px;">
+        <div class="title"><span>${r.athlete_name}</span><span style="color:var(--dim);font-weight:400;">${r.comp_date ? new Date(r.comp_date).toLocaleDateString('ru-RU') : ''}</span></div>
+        <div class="desc">${r.comp_name||'(без названия)'} · встреч: ${r.matches??'—'} · побед: ${r.wins??'—'} · поражений: ${r.losses??'—'}${r.place?(' · место: '+r.place):''}</div>
+        <div class="actions" style="margin-top:6px;">
+          <button class="btn comp-report-approve" data-id="${r.id}" style="font-size:12.5px;padding:7px 10px;">✅ Принять</button>
+          <button class="del comp-report-reject" data-id="${r.id}" style="font-size:12.5px;padding:7px 10px;">✕ Отклонить</button>
+        </div>
+      </div>
+    `).join('');
+    el.querySelectorAll('.comp-report-approve').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        const report = data.find(r=>r.id===b.dataset.id);
+        if(!report) return;
+        const list = await getCompetitions();
+        let comp = list.find(c=> c.name===report.comp_name && (c.date||'')===(report.comp_date||''));
+        if(!comp){
+          comp = { id: uid(), name: report.comp_name || 'Соревнование', date: report.comp_date || '', place:'', ageCategory:'', participants:[] };
+          list.push(comp);
+        }
+        comp.participants = comp.participants || [];
+        comp.participants.push({ name: report.athlete_name, place: report.place || '', matches: report.matches ?? null, wins: report.wins ?? null, losses: report.losses ?? null });
+        await setCompetitions(list);
+        await sb.from('competition_reports').update({ status:'approved' }).eq('id', report.id);
+        renderCompetitions();
+      });
+    });
+    el.querySelectorAll('.comp-report-reject').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        if(!confirm('Отклонить эту заявку?')) return;
+        await sb.from('competition_reports').delete().eq('id', b.dataset.id);
+        renderCompReports();
+      });
+    });
+  }

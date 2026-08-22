@@ -100,7 +100,8 @@
         window.ProFeatures?.guardPanel('panel-ai-coach','ИИ-тренер');
       }
       if(t.dataset.tab==='exams'){ renderExams(); }
-      if(t.dataset.tab==='competitions'){ renderCompetitions(); }
+      if(t.dataset.tab==='ofp'){ renderOfp(); }
+      if(t.dataset.tab==='competitions'){ renderCompetitions(); renderCompReports(); }
       if(t.dataset.tab==='constructor'){ renderConstructor(); }
       if(t.dataset.tab==='rules-pdf'){ loadRulesPdf(); }
       if(t.dataset.tab==='today'){ renderToday(); }
