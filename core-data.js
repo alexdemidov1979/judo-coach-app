@@ -281,7 +281,7 @@
     clearTimeout(autoCloudSyncTimer);
     autoCloudSyncTimer = setTimeout(()=>{
       if(typeof window.firebaseCloudUpload === 'function') window.firebaseCloudUpload(true);
-    }, 1200);
+    }, 5000);
   }
 
   // ---------- Beep ----------
@@ -699,6 +699,60 @@
     }
     return `<html><body>${body}</body></html>`;
   }
+  // ---- печать / PDF плана дня ----
+  // Открывает отдельную печатную страницу. В браузере её можно сразу
+  // распечатать или выбрать «Сохранить как PDF». Не зависит от CDN/ИИ/Supabase.
+  function printDayPlan(){
+    try{
+      const bodyHtml = buildDayPlanHtml(selectedDate, currentSessions)
+        .replace(/^<html><body>/i,'')
+        .replace(/<\/body><\/html>$/i,'');
+      const printHtml = `<!doctype html><html lang="ru"><head><meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Judo Coach — ${escapeHtml(selectedDate.toLocaleDateString('ru-RU'))}</title>
+        <style>
+          @page { size: A4; margin: 16mm; }
+          * { box-sizing: border-box; }
+          body { font-family: Arial, "Segoe UI", sans-serif; color:#111; line-height:1.45; margin:0; }
+          h1 { font-size:22px; margin:0 0 18px; }
+          h2 { font-size:16px; margin:20px 0 8px; padding-bottom:5px; border-bottom:1px solid #bbb; }
+          p { font-size:12px; margin:7px 0 12px; }
+          b { font-size:12px; }
+        </style></head><body>${bodyHtml}</body></html>`;
+
+      // Android APK: use the native Android print service. This avoids the
+      // unreliable window.open()/window.print() path inside WebView.
+      if(window.JudoNative?.isAndroidApp?.() && window.JudoNative.printHtml(printHtml, 'Judo Coach — тренировки за день')){
+        return;
+      }
+
+      const browserHtml = printHtml.replace('</body>', `
+        <div class="print-actions" style="position:sticky;top:0;padding:10px 0 14px;background:#fff">
+          <button onclick="window.print()" style="font-size:15px;padding:10px 16px;margin-right:8px">🖨️ Печать / Сохранить PDF</button>
+          <button onclick="window.close()" style="font-size:15px;padding:10px 16px">Закрыть</button>
+        </div></body>`).replace('</head>', '<style>@media print{.print-actions{display:none!important}}</style></head>');
+      const blob = new Blob([browserHtml], {type:'text/html;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const w = window.open(url, '_blank');
+      if(!w){
+        const fallback = document.createElement('a');
+        fallback.href = url; fallback.target = '_blank'; fallback.rel = 'noopener'; fallback.click();
+        setTimeout(()=>URL.revokeObjectURL(url), 60000);
+        return;
+      }
+      w.addEventListener('load', ()=>{ setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 250); }, {once:true});
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    }catch(e){
+      console.error('Ошибка печати/PDF:', e);
+      alert('Не удалось подготовить печать/PDF. Попробуйте ещё раз.');
+    }
+  }
+
+  const printDayBtn = document.getElementById('print-day-pdf');
+  if(printDayBtn){
+    printDayBtn.addEventListener('click', printDayPlan);
+  }
+
   // ---- voice notes (per session) ----
   function setupVoiceButtons(){
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;

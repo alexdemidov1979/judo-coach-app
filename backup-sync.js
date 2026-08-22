@@ -11,6 +11,7 @@
   let currentProfile = null;
   let cloudReady = false;
   let syncInProgress = false;
+  let retryTimer = null;
   let cloudInitializedForUid = null;
 
   function $(id){ return document.getElementById(id); }
@@ -122,6 +123,10 @@
   }
 
   async function uploadDumpToCloud(silent=false){
+    if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      setCloudStatus('Нет интернета — данные сохранены на телефоне', '🟠 Офлайн');
+      return false;
+    }
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
     if(!fb || !user){
@@ -148,6 +153,10 @@
   }
 
   async function downloadFromCloud(silent=false){
+    if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      setCloudStatus('Нет интернета — работаем с данными телефона', '🟠 Офлайн');
+      return false;
+    }
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
     if(!fb || !user){ if(!silent) alert('Сначала войдите в Judo Coach.'); return false; }
@@ -354,6 +363,16 @@
       if(mainSignin) mainSignin.style.display='';
     }
   }
+
+  window.addEventListener('offline', () => {
+    setCloudStatus('Офлайн — данные сохраняются на телефоне', '🟠 Офлайн');
+  });
+  window.addEventListener('online', () => {
+    if(retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => {
+      if(currentCloudUser) uploadDumpToCloud(true);
+    }, 1800);
+  });
 
   window.addEventListener('judo:firebase-auth-state', onFirebaseState);
   window.addEventListener('judo:pro-status', (e)=>{
