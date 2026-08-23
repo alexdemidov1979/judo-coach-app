@@ -1,4 +1,4 @@
-/* Judo Coach — Supabase Email/Password UI, без клубов и ролей.
+/* Judo Coach — Firebase Email/Password UI, без клубов и ролей.
  * Каждый email+пароль аккаунт сразу получает полный доступ к своим данным. */
 (() => {
   'use strict';
@@ -21,8 +21,8 @@
       'auth/user-not-found': 'Пользователь с таким email не найден.',
       'auth/wrong-password': 'Неверный email или пароль.',
       'auth/too-many-requests': 'Слишком много попыток. Попробуйте позже.',
-      'auth/network-request-failed': 'Нет соединения с сервером Supabase. Проверьте интернет-соединение и повторите попытку.',
-      'permission-denied': 'Сервер отклонил действие по правилам безопасности.',
+      'auth/network-request-failed': 'Нет соединения с Firebase. В России это иногда бывает без VPN — попробуйте включить VPN и повторить.',
+      'permission-denied': 'Firebase отклонил действие по правилам безопасности.',
     };
     return map[e?.code] || e?.message || String(e || 'Неизвестная ошибка');
   }
@@ -94,17 +94,12 @@
 
       try {
         message('Создаём аккаунт…');
-        const result = await window.JudoFirebase.register({
+        await window.JudoFirebase.register({
           email: $('auth-register-email').value,
           password,
           displayName: $('auth-register-name').value
         });
-        if (result?.pendingVerification) {
-          message('Аккаунт создан. Проверьте почту, подтвердите email и затем выполните вход.', 'success');
-          showMode('login');
-        } else {
-          message('Аккаунт создан и вход выполнен.', 'success');
-        }
+        message('Аккаунт создан. Добро пожаловать!', 'success');
       } catch (err) {
         message(errorText(err), 'error');
       }
@@ -136,7 +131,7 @@
       const p1 = $('auth-migration-password-input')?.value || '';
       const p2 = $('auth-migration-password2')?.value || '';
       const user = window.JudoFirebase.getCurrentUser?.();
-      if (!user?.email) { message('Текущий облачный аккаунт не найден.', 'error'); return; }
+      if (!user?.email) { message('Текущий Firebase аккаунт не найден.', 'error'); return; }
       if (p1.length < 6 || p1 !== p2) { message('Пароли должны совпадать и содержать минимум 6 символов.', 'error'); return; }
       try {
         await window.JudoFirebase.linkPasswordToCurrentUser(user.email, p1);

@@ -582,82 +582,15 @@
       const headers=rows.shift();
       return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[String(h||'').trim(), r[i] ?? ''])));
     };
-    // Офлайн-разбор XLSX без CDN. Поддерживает обычные .xlsx-файлы
-    // с первым листом, sharedStrings и inlineStr. Старый .xls намеренно
-    // не требует внешней библиотеки: пользователю предлагается сохранить его как .xlsx/CSV.
-    async function parseXlsxOffline(file){
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      const u16 = o => dv.getUint16(o, true);
-      const u32 = o => dv.getUint32(o, true);
-      const dec = new TextDecoder('utf-8');
-      const entries = new Map();
-      let eocd = -1;
-      for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--){
-        if(u32(i)===0x06054b50){ eocd=i; break; }
-      }
-      if(eocd<0) throw new Error('Файл XLSX повреждён: не найден ZIP-каталог.');
-      const cdSize=u32(eocd+12), cdOffset=u32(eocd+16);
-      let pos=cdOffset, end=cdOffset+cdSize;
-      while(pos<end && u32(pos)===0x02014b50){
-        const method=u16(pos+10), compSize=u32(pos+20), uncompSize=u32(pos+24);
-        const nameLen=u16(pos+28), extraLen=u16(pos+30), commentLen=u16(pos+32), localOffset=u32(pos+42);
-        const name=dec.decode(bytes.slice(pos+46,pos+46+nameLen));
-        entries.set(name,{method,compSize,uncompSize,localOffset});
-        pos+=46+nameLen+extraLen+commentLen;
-      }
-      async function readEntry(name){
-        const e=entries.get(name); if(!e) return null;
-        const lo=e.localOffset;
-        if(u32(lo)!==0x04034b50) throw new Error('Некорректная ZIP-запись XLSX.');
-        const n=u16(lo+26), x=u16(lo+28), data=bytes.slice(lo+30+n+x,lo+30+n+x+e.compSize);
-        if(e.method===0) return data;
-        if(e.method!==8) throw new Error('Неподдерживаемый метод сжатия XLSX.');
-        if(typeof DecompressionStream==='undefined') throw new Error('Ваш браузер не поддерживает распаковку XLSX офлайн.');
-        const ds=new DecompressionStream('deflate-raw');
-        const ab=await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
-        return new Uint8Array(ab);
-      }
-      async function xml(name){ const b=await readEntry(name); return b?new DOMParser().parseFromString(dec.decode(b),'application/xml'):null; }
-      const shared=[];
-      const ss=await xml('xl/sharedStrings.xml');
-      if(ss){
-        ss.querySelectorAll('si').forEach(si=>shared.push(Array.from(si.querySelectorAll('t')).map(t=>t.textContent||'').join('')));
-      }
-      let sheetPath='xl/worksheets/sheet1.xml';
-      const wb=await xml('xl/workbook.xml');
-      const rels=await xml('xl/_rels/workbook.xml.rels');
-      if(wb && rels){
-        const first=wb.querySelector('sheets > sheet');
-        const rid=first?.getAttribute('r:id');
-        const rel=rid ? Array.from(rels.querySelectorAll('Relationship')).find(x=>x.getAttribute('Id')===rid) : null;
-        if(rel?.getAttribute('Target')){
-          const target=rel.getAttribute('Target').replace(/^\//,'');
-          sheetPath=target.startsWith('xl/')?target:`xl/${target.replace(/^\//,'')}`;
-        }
-      }
-      const sheet=await xml(sheetPath);
-      if(!sheet) throw new Error('Не найден первый лист XLSX.');
-      const cells=[]; let maxCol=0, maxRow=0;
-      const colIndex=ref=>{ const m=String(ref||'').match(/^([A-Z]+)(\d+)/i); if(!m)return [0,0]; let c=0; for(const ch of m[1].toUpperCase()) c=c*26+ch.charCodeAt(0)-64; return [c-1,Number(m[2])-1]; };
-      sheet.querySelectorAll('sheetData > row').forEach(row=>{
-        const arr=[]; row.querySelectorAll('c').forEach(c=>{
-          const [ci,ri]=colIndex(c.getAttribute('r')); maxCol=Math.max(maxCol,ci); maxRow=Math.max(maxRow,ri);
-          const t=c.getAttribute('t'); const v=c.querySelector('v')?.textContent ?? '';
-          let val=v;
-          if(t==='s') val=shared[Number(v)] ?? '';
-          else if(t==='inlineStr') val=Array.from(c.querySelectorAll('is t')).map(x=>x.textContent||'').join('');
-          else if(t==='b') val=v==='1';
-          arr[ci]=val;
-        });
-        cells.push({ri:Math.max(0,(Number(row.getAttribute('r'))||1)-1),arr});
-      });
-      const matrix=Array.from({length:maxRow+1},()=>Array(maxCol+1).fill(''));
-      cells.forEach(x=>x.arr.forEach((v,i)=>matrix[x.ri][i]=v??''));
-      const headers=(matrix.shift()||[]).map(x=>String(x??'').trim());
-      return matrix.filter(r=>r.some(x=>String(x??'').trim()!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])));
-    }
-
+    const loadXLSX = () => new Promise((resolve,reject)=>{
+      if(window.XLSX) return resolve(window.XLSX);
+      const existing=document.querySelector('script[data-judo-xlsx]');
+      if(existing){ existing.addEventListener('load',()=>resolve(window.XLSX),{once:true}); existing.addEventListener('error',()=>reject(new Error('Не удалось загрузить модуль Excel.')),{once:true}); return; }
+      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.async=true; sc.dataset.judoXlsx='1';
+      sc.onload=()=>window.XLSX?resolve(window.XLSX):reject(new Error('Модуль Excel загрузился без XLSX.'));
+      sc.onerror=()=>reject(new Error('Не удалось загрузить модуль Excel. Проверьте интернет и повторите.'));
+      document.head.appendChild(sc);
+    });
 
     function rowToAthlete(row){
       const surname=asText(get(row,['Фамилия','Surname','Last Name']));
@@ -727,10 +660,12 @@
         const ext=file.name.toLowerCase().split('.').pop();
         let rows=[];
         if(ext==='csv') rows=parseCSV(await file.text());
-        else if(ext==='xlsx') {
-          rows=await parseXlsxOffline(file);
-        } else {
-          throw new Error('Формат .xls устаревший. Сохраните файл как .xlsx или CSV — импорт будет работать полностью офлайн.');
+        else {
+          const XLSX=await loadXLSX();
+          const data=await file.arrayBuffer();
+          const wb=XLSX.read(data,{type:'array',cellDates:true});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
         }
         await importRows(rows,file.name);
       }catch(err){ console.error('Excel import failed',err); alert('Не удалось прочитать файл Excel.\n\n'+(err?.message||err)); }

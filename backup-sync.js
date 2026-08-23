@@ -11,6 +11,7 @@
   let currentProfile = null;
   let cloudReady = false;
   let syncInProgress = false;
+  let retryTimer = null;
   let cloudInitializedForUid = null;
 
   function $(id){ return document.getElementById(id); }
@@ -122,6 +123,10 @@
   }
 
   async function uploadDumpToCloud(silent=false){
+    if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      setCloudStatus('Нет интернета — данные сохранены на телефоне', '🟠 Офлайн');
+      return false;
+    }
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
     if(!fb || !user){
@@ -147,24 +152,11 @@
     }finally{ syncInProgress = false; }
   }
 
-  // Полностью очищает локальные данные приложения перед переключением аккаунта.
-  // Важно: используем S.delete, но временно блокируем автосинхронизацию,
-  // чтобы удаление старого аккаунта не улетело в облако нового аккаунта.
-  let suppressAutoSync = false;
-  async function clearLocalUserData(){
-    const res = await S.list('');
-    const keys = Array.isArray(res?.keys) ? res.keys : [];
-    suppressAutoSync = true;
-    window.__JUDO_SUPPRESS_AUTO_SYNC = true;
-    try {
-      await Promise.all(keys.map(key => S.delete(key)));
-    } finally {
-      suppressAutoSync = false;
-      window.__JUDO_SUPPRESS_AUTO_SYNC = false;
-    }
-  }
-
   async function downloadFromCloud(silent=false){
+    if(typeof navigator !== 'undefined' && navigator.onLine === false){
+      setCloudStatus('Нет интернета — работаем с данными телефона', '🟠 Офлайн');
+      return false;
+    }
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
     if(!fb || !user){ if(!silent) alert('Сначала войдите в Judo Coach.'); return false; }
@@ -217,9 +209,8 @@
       }
       cloudInitializedForUid = currentCloudUser.uid;
       showCloudSignedIn(true);
-      setCloudStatus('Переключаем локальные данные на новый аккаунт…', '🟡 Supabase');
+      setCloudStatus('Загружаем данные аккаунта из облака…', '🟡 Supabase');
       try{
-        await clearLocalUserData();
         const docs = await listCloudRows(currentCloudUser.uid);
         const realDocs = docs.filter(d => d.id !== encodeKey('__meta__'));
         if(realDocs.length){ await downloadFromCloud(true); }
@@ -299,18 +290,25 @@
   window.cloudDownload = downloadFromCloud;
   window.cloudCurrentUser = () => currentCloudUser;
   // Backward-compatible names used by the existing UI/data layer.
-  window.cloudUpload = uploadDumpToCloud;
+  window.firebaseCloudUpload = uploadDumpToCloud;
   window.firebaseCloudDownload = downloadFromCloud;
-  window.cloudCurrentUser = () => currentCloudUser;
+  window.firebaseCloudCurrentUser = () => currentCloudUser;
 
   function initUi(){
     $('export-btn')?.addEventListener('click', ()=>exportAllData(false));
 
     $('main-firebase-signin')?.addEventListener('click', async ()=>{
-      // Кнопка главного экрана не должна вызывать signIn() без email/пароля.
-      // Открываем штатную форму авторизации, где пользователь вводит данные.
-      document.getElementById('main-auth-card')?.scrollIntoView({behavior:'smooth', block:'center'});
-      document.getElementById('auth-login-email')?.focus();
+      try{
+        if(!window.JudoFirebase) throw new Error('Supabase ещё не инициализирован.');
+        const s=$('main-auth-status');
+        if(s) s.textContent='Открываем безопасный вход…';
+        await window.JudoFirebase.signIn();
+      }catch(e){
+        console.error('Main Supabase sign-in failed:', e);
+        const s=$('main-auth-status');
+        if(s) s.textContent='Ошибка входа: '+(e?.code || e?.message || 'неизвестная ошибка');
+        alert('Не удалось начать вход.\n\n'+(e?.code || '')+'\n'+(e?.message || e));
+      }
     });
     $('main-firebase-signout')?.addEventListener('click', async ()=>{
       try{ await window.JudoFirebase?.signOut(); }catch(e){ alert('Не удалось выйти: '+(e?.message||e)); }
@@ -365,6 +363,16 @@
       if(mainSignin) mainSignin.style.display='';
     }
   }
+
+  window.addEventListener('offline', () => {
+    setCloudStatus('Офлайн — данные сохраняются на телефоне', '🟠 Офлайн');
+  });
+  window.addEventListener('online', () => {
+    if(retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => {
+      if(currentCloudUser) uploadDumpToCloud(true);
+    }, 1800);
+  });
 
   window.addEventListener('judo:firebase-auth-state', onFirebaseState);
   window.addEventListener('judo:pro-status', (e)=>{

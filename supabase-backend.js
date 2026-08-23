@@ -70,19 +70,9 @@ async function register({ email, password, displayName }) {
     options: { data: { display_name: displayName || '' } }
   });
   if (error) throw new Error(error.message || 'Ошибка регистрации.');
-
-  // В Supabase при включённом подтверждении email пользователь создаётся,
-  // но активной сессии ещё нет. Нельзя считать такой аккаунт вошедшим:
-  // иначе синхронизация могла попытаться работать с uid без действующей сессии.
-  if (!data?.session || !data?.user) {
-    clearUserCache();
-    window.dispatchEvent(new CustomEvent('judo:firebase-auth-pending', {
-      detail: { email, needsEmailConfirmation: true }
-    }));
-    return { uid: null, email, isPro: false, pendingVerification: true };
-  }
-
-  const user = await buildUser(data.user);
+  // Строка в таблице profiles создаётся автоматически триггером в БД
+  // (handle_new_user, см. supabase/sql/schema.sql).
+  const user = { uid: data.user ? data.user.id : null, email, isPro: false };
   saveUserCache(user);
   emitAuthState(user);
   return user;
@@ -118,13 +108,10 @@ async function getUserProfile() {
   return currentUser;
 }
 
-// Статус Pro нельзя менять из клиентского JavaScript.
-// Раньше эта функция обновляла profiles.is_pro напрямую, что позволяло
-// авторизованному пользователю потенциально выдать самому себе Pro через API.
-// Оставляем совместимый метод, но он больше не пишет в Supabase. Реальная
-// разблокировка должна выполняться доверенным серверным/RuStore-процессом.
 async function setProStatus(isPro) {
   if (!currentUser) return;
+  const { error } = await sb.from('profiles').update({ is_pro: !!isPro }).eq('id', currentUser.uid);
+  if (error) throw new Error(error.message || 'Не удалось обновить статус Pro.');
   currentUser.isPro = !!isPro;
   saveUserCache(currentUser);
 }
