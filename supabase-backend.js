@@ -70,9 +70,19 @@ async function register({ email, password, displayName }) {
     options: { data: { display_name: displayName || '' } }
   });
   if (error) throw new Error(error.message || 'Ошибка регистрации.');
-  // Строка в таблице profiles создаётся автоматически триггером в БД
-  // (handle_new_user, см. supabase/sql/schema.sql).
-  const user = { uid: data.user ? data.user.id : null, email, isPro: false };
+
+  // В Supabase при включённом подтверждении email пользователь создаётся,
+  // но активной сессии ещё нет. Нельзя считать такой аккаунт вошедшим:
+  // иначе синхронизация могла попытаться работать с uid без действующей сессии.
+  if (!data?.session || !data?.user) {
+    clearUserCache();
+    window.dispatchEvent(new CustomEvent('judo:firebase-auth-pending', {
+      detail: { email, needsEmailConfirmation: true }
+    }));
+    return { uid: null, email, isPro: false, pendingVerification: true };
+  }
+
+  const user = await buildUser(data.user);
   saveUserCache(user);
   emitAuthState(user);
   return user;

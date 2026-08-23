@@ -302,101 +302,58 @@ Eco ukemi через спину партнёра
   function destroyChart(id){ if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; } }
 
   async function renderStatsCharts(){
-    await loadChartJS();
-    if(typeof Chart==='undefined') return;
-    const textColor = getComputedStyle(document.body).getPropertyValue('--dim') || '#888';
-    Chart.defaults.color = textColor.trim() || '#888';
-    Chart.defaults.font.family = "'Inter', sans-serif";
-
-    // ---- 1) Тренировки и часы за 6 месяцев ----
-    const months = [];
-    for(let i=5;i>=0;i--){
-      const d = new Date(); d.setMonth(d.getMonth()-i);
-      months.push(d);
-    }
-    const sessionsPerMonth = [], hoursPerMonth = [], attendancePerMonth = [];
-    for(const d of months){
-      let sess = [];
-      try{
-        const res = await S.list(monthPrefix(d));
-        const keys = (res && res.keys) || [];
-        for(const k of keys){ try{ const r = await S.get(k); if(r) sess = sess.concat(JSON.parse(r.value)||[]); }catch(e){} }
-      }catch(e){}
-      const doneM = sess.filter(p=>p.status==='done');
-      sessionsPerMonth.push(doneM.length);
-      hoursPerMonth.push(Math.round(doneM.reduce((s,p)=>s+(p.duration||0),0)/60*10)/10);
-      let sum=0, cnt=0;
-      doneM.forEach(p=>{
-        const st = p.attendanceStatus || {};
-        roster.forEach(r=>{
-          const s = st[r.name] || (((p.attendance||[]).includes(r.name)) ? 'present' : null);
-          if(s==='present'){ sum++; cnt++; } else if(s==='absent'){ cnt++; }
+    const canvasDraw = (id, type, labels, datasets, opts={}) => {
+      const c = document.getElementById(id); if(!c) return;
+      const rect = c.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const w = Math.max(280, Math.floor(rect.width || c.parentElement?.clientWidth || 320));
+      const h = Math.max(160, Number(c.getAttribute('height')) || 180);
+      c.width = w*dpr; c.height = h*dpr; c.style.width='100%'; c.style.height=h+'px';
+      const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+      const cs=getComputedStyle(document.body); const text=(cs.getPropertyValue('--dim')||'#888').trim();
+      const fg=(cs.getPropertyValue('--text')||'#222').trim(); const grid='rgba(128,128,128,.18)';
+      const pad={l:34,r:14,t:14,b:30}; const pw=w-pad.l-pad.r, ph=h-pad.t-pad.b;
+      const all=(datasets||[]).flatMap(x=>x.data||[]).filter(v=>Number.isFinite(v));
+      const max=(opts.max!=null?opts.max:(Math.max(1,...all)*1.15));
+      const x=i=>pad.l+(labels.length<=1?pw/2:i*pw/(labels.length-1));
+      const y=v=>pad.t+ph-(Math.max(0,Math.min(max,v))/max)*ph;
+      ctx.font='12px sans-serif'; ctx.fillStyle=text; ctx.strokeStyle=grid; ctx.lineWidth=1;
+      for(let i=0;i<=4;i++){ const yy=pad.t+ph*i/4; ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke(); const val=Math.round(max*(4-i)/4); ctx.fillText(String(val),3,yy+4); }
+      labels.forEach((lab,i)=>{ctx.fillStyle=text;ctx.textAlign='center';ctx.fillText(String(lab),x(i),h-8);}); ctx.textAlign='left';
+      const palette=['#1a2f4a','#c9a227','#2e8b57','#b3312c','#6b5b95'];
+      if(type==='bar' || type==='line'){
+        const barW=Math.max(8,Math.min(28,pw/Math.max(1,labels.length*1.8)));
+        datasets.forEach((ds,di)=>{
+          ctx.strokeStyle=palette[di%palette.length]; ctx.fillStyle=palette[di%palette.length]; ctx.lineWidth=2;
+          if(type==='bar') ds.data.forEach((v,i)=>{if(!Number.isFinite(v))return; const xx=x(i)-barW/2+(di-(datasets.length-1)/2)*barW; const yy=y(v); ctx.fillRect(xx,yy,barW,Math.max(1,pad.t+ph-yy));});
+          else { let started=false; ds.data.forEach((v,i)=>{if(!Number.isFinite(v)){started=false;return;} if(!started){ctx.beginPath();ctx.moveTo(x(i),y(v));started=true;}else ctx.lineTo(x(i),y(v));}); ctx.stroke(); ds.data.forEach((v,i)=>{if(Number.isFinite(v)){ctx.beginPath();ctx.arc(x(i),y(v),3,0,Math.PI*2);ctx.fill();}}); }
         });
-      });
-      attendancePerMonth.push(cnt>0 ? Math.round((sum/cnt)*100) : null);
+      } else if(type==='hbar'){
+        const vals=datasets[0]?.data||[]; const n=vals.length; const row=Math.max(18,ph/Math.max(1,n)); const mx=Math.max(1,...vals); vals.forEach((v,i)=>{const yy=pad.t+i*row+3; const ww=pw*(v/mx); ctx.fillStyle=palette[0];ctx.fillRect(pad.l,yy,ww,Math.max(10,row-6));ctx.fillStyle=text;ctx.fillText(String(labels[i]).slice(0,22),pad.l+4,yy+12);});
+      } else if(type==='doughnut'){
+        const vals=datasets[0]?.data||[0,0,0], total=vals.reduce((a,b)=>a+(Number(b)||0),0); const cx=pad.l+pw*.5, cy=pad.t+ph*.5, r=Math.min(pw,ph)*.34; let a=-Math.PI/2;
+        vals.forEach((v,i)=>{const da=total?2*Math.PI*v/total:0;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+da);ctx.closePath();ctx.fillStyle=palette[i];ctx.fill();a+=da;});
+        ctx.fillStyle=(cs.getPropertyValue('--surface')||'#fff').trim();ctx.beginPath();ctx.arc(cx,cy,r*.55,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=fg;ctx.textAlign='center';ctx.font='bold 18px sans-serif';ctx.fillText(String(total),cx,cy+6);ctx.textAlign='left';
+      }
+    };
+
+    const months=[]; for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d);}
+    const sessionsPerMonth=[],hoursPerMonth=[],attendancePerMonth=[];
+    for(const d of months){let sess=[];try{const res=await S.list(monthPrefix(d));for(const k of (res?.keys||[])){try{const r=await S.get(k);if(r)sess=sess.concat(JSON.parse(r.value)||[]);}catch(e){}}}catch(e){}
+      const doneM=sess.filter(p=>p.status==='done'); sessionsPerMonth.push(doneM.length); hoursPerMonth.push(Math.round(doneM.reduce((s,p)=>s+(p.duration||0),0)/60*10)/10); let sum=0,cnt=0;
+      doneM.forEach(p=>{const st=p.attendanceStatus||{};roster.forEach(r=>{const a=st[r.name]||((p.attendance||[]).includes(r.name)?'present':null);if(a==='present'){sum++;cnt++;}else if(a==='absent')cnt++;});}); attendancePerMonth.push(cnt?Math.round(sum/cnt*100):null);
     }
-    const monthLabels = months.map(d=>monthNames[d.getMonth()].slice(0,3));
-
-    destroyChart('sessions');
-    chartInstances['sessions'] = new Chart(document.getElementById('chart-sessions'), {
-      type:'bar',
-      data:{ labels: monthLabels, datasets:[
-        {label:'Тренировок', data: sessionsPerMonth, backgroundColor: CHART_COLORS.navy, yAxisID:'y'},
-        {label:'Часов', data: hoursPerMonth, type:'line', borderColor: CHART_COLORS.gold, backgroundColor: CHART_COLORS.gold, yAxisID:'y1', tension:.3}
-      ]},
-      options:{ responsive:true, scales:{
-        y:{ beginAtZero:true, position:'left', grid:{color:CHART_COLORS.grid} },
-        y1:{ beginAtZero:true, position:'right', grid:{drawOnChartArea:false} }
-      }}
-    });
-
-    destroyChart('attendance');
-    chartInstances['attendance'] = new Chart(document.getElementById('chart-attendance'), {
-      type:'line',
-      data:{ labels: monthLabels, datasets:[
-        {label:'Посещаемость, %', data: attendancePerMonth, borderColor: CHART_COLORS.ok, backgroundColor: CHART_COLORS.ok+'33', fill:true, tension:.3, spanGaps:true}
-      ]},
-      options:{ responsive:true, scales:{ y:{ beginAtZero:true, max:100, grid:{color:CHART_COLORS.grid} } } }
-    });
-
-    // ---- 3) Прогресс по поясам ----
-    const beltCounts = {};
-    roster.forEach(r=>{ const k = r.kyu || 'Без пояса'; beltCounts[k] = (beltCounts[k]||0)+1; });
-    destroyChart('belts');
-    chartInstances['belts'] = new Chart(document.getElementById('chart-belts'), {
-      type:'bar',
-      data:{ labels: Object.keys(beltCounts), datasets:[{label:'Учеников', data: Object.values(beltCounts), backgroundColor: CHART_COLORS.gold}]},
-      options:{ responsive:true, indexAxis:'y', scales:{ x:{ beginAtZero:true, grid:{color:CHART_COLORS.grid} } } }
-    });
-
-    // ---- 4) Освоенные техники по категориям ----
-    const catLabels = {te:'Te-waza', koshi:'Koshi-waza', ashi:'Ashi-waza', masutemi:'Masutemi', yokosutemi:'Yokosutemi', osaekomi:'Удержания', shime:'Удушения', kansetsu:'Болевые'};
-    const catCounts = {};
-    roster.forEach(r=>{
-      Object.keys(r.techProgress||{}).forEach(romaji=>{
-        const t = TERMINOLOGY_DATA.techniques.find(x=>x.romaji===romaji);
-        if(t){ catCounts[t.cat] = (catCounts[t.cat]||0)+1; }
-      });
-    });
-    destroyChart('techniques');
-    chartInstances['techniques'] = new Chart(document.getElementById('chart-techniques'), {
-      type:'bar',
-      data:{ labels: Object.keys(catCounts).map(k=>catLabels[k]||k), datasets:[{label:'Отмечено освоенными (по всем ученикам)', data: Object.values(catCounts), backgroundColor: CHART_COLORS.navy}]},
-      options:{ responsive:true, scales:{ y:{ beginAtZero:true, grid:{color:CHART_COLORS.grid} } } }
-    });
-
-    // ---- 5) Медали на соревнованиях ----
-    const comps = await getCompetitions();
-    let gold=0, silver=0, bronze=0;
-    comps.forEach(c=> (c.participants||[]).forEach(p=>{
-      if(p.place==='1') gold++; else if(p.place==='2') silver++; else if(p.place==='3') bronze++;
-    }));
-    destroyChart('medals');
-    chartInstances['medals'] = new Chart(document.getElementById('chart-medals'), {
-      type:'doughnut',
-      data:{ labels:['Золото','Серебро','Бронза'], datasets:[{data:[gold,silver,bronze], backgroundColor:['#d4af37','#adb5bd','#cd7f32']}]},
-      options:{ responsive:true }
-    });
+    const monthLabels=months.map(d=>monthNames[d.getMonth()].slice(0,3));
+    canvasDraw('chart-sessions','bar',monthLabels,[{data:sessionsPerMonth},{data:hoursPerMonth}],{max:Math.max(1,...sessionsPerMonth,...hoursPerMonth)*1.15});
+    canvasDraw('chart-attendance','line',monthLabels,[{data:attendancePerMonth}],{max:100});
+    const beltCounts={}; roster.forEach(r=>{const k=r.kyu||'Без пояса';beltCounts[k]=(beltCounts[k]||0)+1;});
+    canvasDraw('chart-belts','hbar',Object.keys(beltCounts),[{data:Object.values(beltCounts)}]);
+    const catLabels={te:'Te-waza',koshi:'Koshi-waza',ashi:'Ashi-waza',masutemi:'Masutemi',yokosutemi:'Yokosutemi',osaekomi:'Удержания',shime:'Удушения',kansetsu:'Болевые'}; const catCounts={};
+    roster.forEach(r=>Object.keys(r.techProgress||{}).forEach(romaji=>{const t=TERMINOLOGY_DATA.techniques.find(x=>x.romaji===romaji);if(t)catCounts[t.cat]=(catCounts[t.cat]||0)+1;}));
+    canvasDraw('chart-techniques','bar',Object.keys(catCounts).map(k=>catLabels[k]||k),[{data:Object.values(catCounts)}]);
+    const comps=await getCompetitions(); let gold=0,silver=0,bronze=0; comps.forEach(c=>(c.participants||[]).forEach(p=>{if(p.place==='1')gold++;else if(p.place==='2')silver++;else if(p.place==='3')bronze++;}));
+    canvasDraw('chart-medals','doughnut',['Золото','Серебро','Бронза'],[{data:[gold,silver,bronze]}]);
   }
 
   // ================= TIMERS (Табата / Отсчёт / Секундомер / Судейский) =================

@@ -5,13 +5,13 @@
 // уведомление, если у него есть повод сделать это (см. showLocalReminder
 // в index.html — это локальные напоминания, работающие без сервера).
 
-const CACHE_VERSION = 'v26-android-offline';
+const CACHE_VERSION = 'v26-mobile-no-ai-offline';
 const CACHE_NAME = `judo-coach-cache-${CACHE_VERSION}`;
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './styles.css',
   './core-data.js', './drive-video-links.js', './pro-features.js', './roster.js', './library-ui.js', './library-kyu.js',
   './library-techniques-data.js', './library-render.js', './stats-competitions.js', './ofp-attestation.js', './comp-report.html',
   './constructor-timers.js', './backup-sync.js', './navigation-ui.js', './video-tools-misc.js',
-  './video-player.js', './training-intelligence.js', './firebase-auth-ui.js', './fight-review-studio.js', './fight-intelligence.js', './video-feedback.js', './supabase-js.vendor.js', './supabase-backend.js', './sw-register.js', './native-bridge.js', './android-shell.js', './src/core/config/app-config.js', './src/core/video/video-source.js'];
+  './video-player.js', './training-intelligence.js', './firebase-auth-ui.js', './fight-review-studio.js', './fight-intelligence.js', './video-feedback.js', './supabase-js.vendor.js', './supabase-backend.js', './sw-register.js', './src/core/config/app-config.js', './src/core/video/video-source.js'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -34,23 +34,29 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Стратегия: сначала сеть (свежие данные, актуальный код),
-// если сети нет — берём последнюю сохранённую копию из кэша (офлайн-режим).
+// Стратегия: cache-first. Приложение должно открываться мгновенно и без сети.
+// Для уже закэшированных ресурсов свежая версия проверяется в фоне.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  // Не трогаем кросс-доменные запросы (RuTube, Google Drive, Google Auth, CDN) —
-  // их кэшировать не нужно и не всегда можно из-за CORS.
   if (new URL(event.request.url).origin !== self.location.origin) return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
-        return res;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
-  );
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(event.request);
+
+    const refresh = fetch(event.request).then(res => {
+      if (res && res.ok) cache.put(event.request, res.clone()).catch(() => {});
+      return res;
+    }).catch(() => null);
+
+    if (cached) {
+      event.waitUntil(refresh);
+      return cached;
+    }
+
+    const fresh = await refresh;
+    return fresh || cache.match('./index.html');
+  })());
 });
 
 // ---------- Заготовка под push-уведомления ----------

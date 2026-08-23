@@ -40,49 +40,22 @@
     }
   }
 
-  // Модуль PDF.js грузим только при открытии вкладки (как и Excel-модуль в roster.js) —
-  // чтобы не тратить трафик и время запуска, если правила никто не открывает.
-  function loadPdfJsLib(){
-    return new Promise((resolve, reject)=>{
-      if(window.pdfjsLib) return resolve(window.pdfjsLib);
-      const existing = document.getElementById('pdfjs-lib-script');
-      if(existing){
-        existing.addEventListener('load', ()=>resolve(window.pdfjsLib), {once:true});
-        existing.addEventListener('error', ()=>reject(new Error('Не удалось загрузить модуль PDF.')), {once:true});
-        return;
-      }
-      const sc = document.createElement('script');
-      sc.id = 'pdfjs-lib-script';
-      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      sc.onload = ()=> window.pdfjsLib ? resolve(window.pdfjsLib) : reject(new Error('Модуль PDF загрузился без pdfjsLib.'));
-      sc.onerror = ()=> reject(new Error('Не удалось загрузить модуль PDF.'));
-      document.head.appendChild(sc);
-    });
-  }
-
+  // Локальный PDF: не зависит от CDN и сети. На устройствах со встроенным
+  // просмотрщиком документ откроется прямо в браузере; на Android WebView
+  // используется системное открытие файла через ссылку.
   async function loadRulesPdf(){
-    if(rulesPdfLoaded) return;
-    rulesPdfLoaded = true;
     const holder = document.getElementById('rules-pdf-holder');
-    holder.innerHTML = '<div class="empty-hint">Загружаю документ…</div>';
-    try{
-      const pdfjsLib = await loadPdfJsLib();
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      rulesPdfDoc = await pdfjsLib.getDocument('pravila-mfd.pdf').promise;
-      await renderRulesPdfPage(1);
-    }catch(e){
-      console.error('Не удалось открыть PDF правил:', e);
-      rulesPdfLoaded = false;
-      holder.innerHTML = '<div class="empty-hint">Не удалось открыть файл правил. Откройте PDF отдельной кнопкой — просмотрщик PDF зависит от устройства.</div>';
-    }
+    if(!holder) return;
+    holder.innerHTML = `
+      <div class="empty-hint" style="padding:20px;text-align:center">
+        <div style="font-size:42px;margin-bottom:8px">📄</div>
+        <div style="font-weight:700;margin-bottom:8px">Правила соревнований</div>
+        <div style="opacity:.75;margin-bottom:16px">Документ хранится внутри приложения и доступен без интернета.</div>
+        <a href="pravila-mfd.pdf" target="_blank" rel="noopener" class="btn primary" style="display:inline-flex;text-decoration:none">Открыть PDF</a>
+      </div>`;
   }
 
-  document.getElementById('rules-pdf-prev')?.addEventListener('click', ()=>{
-    if(rulesPdfDoc && rulesPdfPage > 1) renderRulesPdfPage(rulesPdfPage - 1);
-  });
-  document.getElementById('rules-pdf-next')?.addEventListener('click', ()=>{
-    if(rulesPdfDoc && rulesPdfPage < rulesPdfDoc.numPages) renderRulesPdfPage(rulesPdfPage + 1);
-  });
+
 
   document.querySelectorAll('.tab').forEach(t=>{
     t.addEventListener('click', ()=>{

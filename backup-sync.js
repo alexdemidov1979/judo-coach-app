@@ -11,7 +11,6 @@
   let currentProfile = null;
   let cloudReady = false;
   let syncInProgress = false;
-  let retryTimer = null;
   let cloudInitializedForUid = null;
 
   function $(id){ return document.getElementById(id); }
@@ -123,10 +122,6 @@
   }
 
   async function uploadDumpToCloud(silent=false){
-    if(typeof navigator !== 'undefined' && navigator.onLine === false){
-      setCloudStatus('Нет интернета — данные сохранены на телефоне', '🟠 Офлайн');
-      return false;
-    }
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
     if(!fb || !user){
@@ -153,10 +148,6 @@
   }
 
   async function downloadFromCloud(silent=false){
-    if(typeof navigator !== 'undefined' && navigator.onLine === false){
-      setCloudStatus('Нет интернета — работаем с данными телефона', '🟠 Офлайн');
-      return false;
-    }
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
     if(!fb || !user){ if(!silent) alert('Сначала войдите в Judo Coach.'); return false; }
@@ -298,17 +289,10 @@
     $('export-btn')?.addEventListener('click', ()=>exportAllData(false));
 
     $('main-firebase-signin')?.addEventListener('click', async ()=>{
-      try{
-        if(!window.JudoFirebase) throw new Error('Supabase ещё не инициализирован.');
-        const s=$('main-auth-status');
-        if(s) s.textContent='Открываем безопасный вход…';
-        await window.JudoFirebase.signIn();
-      }catch(e){
-        console.error('Main Supabase sign-in failed:', e);
-        const s=$('main-auth-status');
-        if(s) s.textContent='Ошибка входа: '+(e?.code || e?.message || 'неизвестная ошибка');
-        alert('Не удалось начать вход.\n\n'+(e?.code || '')+'\n'+(e?.message || e));
-      }
+      // Кнопка главного экрана не должна вызывать signIn() без email/пароля.
+      // Открываем штатную форму авторизации, где пользователь вводит данные.
+      document.getElementById('main-auth-card')?.scrollIntoView({behavior:'smooth', block:'center'});
+      document.getElementById('auth-login-email')?.focus();
     });
     $('main-firebase-signout')?.addEventListener('click', async ()=>{
       try{ await window.JudoFirebase?.signOut(); }catch(e){ alert('Не удалось выйти: '+(e?.message||e)); }
@@ -363,16 +347,6 @@
       if(mainSignin) mainSignin.style.display='';
     }
   }
-
-  window.addEventListener('offline', () => {
-    setCloudStatus('Офлайн — данные сохраняются на телефоне', '🟠 Офлайн');
-  });
-  window.addEventListener('online', () => {
-    if(retryTimer) clearTimeout(retryTimer);
-    retryTimer = setTimeout(() => {
-      if(currentCloudUser) uploadDumpToCloud(true);
-    }, 1800);
-  });
 
   window.addEventListener('judo:firebase-auth-state', onFirebaseState);
   window.addEventListener('judo:pro-status', (e)=>{

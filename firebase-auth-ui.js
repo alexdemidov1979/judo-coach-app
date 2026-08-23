@@ -94,12 +94,17 @@
 
       try {
         message('Создаём аккаунт…');
-        await window.JudoFirebase.register({
+        const result = await window.JudoFirebase.register({
           email: $('auth-register-email').value,
           password,
           displayName: $('auth-register-name').value
         });
-        message('Аккаунт создан. Добро пожаловать!', 'success');
+        if (result?.pendingVerification) {
+          message('Аккаунт создан. Проверьте почту, подтвердите email и затем выполните вход.', 'success');
+          showMode('login');
+        } else {
+          message('Аккаунт создан и вход выполнен.', 'success');
+        }
       } catch (err) {
         message(errorText(err), 'error');
       }
