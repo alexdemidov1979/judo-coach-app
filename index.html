@@ -16,6 +16,16 @@
 </head>
 <body>
 <a href="#main-content" class="skip-link">Перейти к содержимому</a>
+<div id="jc-onboarding" class="jc-onboarding" role="dialog" aria-modal="true" aria-labelledby="jc-ob-title" hidden>
+  <div class="jc-ob-sheet">
+    <div class="jc-ob-brand"><span class="kanji">柔道</span><strong>JUDO COACH</strong></div>
+    <div class="jc-ob-progress"><span class="active"></span><span></span><span></span></div>
+    <div class="jc-ob-slide active" data-ob="0"><div class="jc-ob-icon">🥋</div><h2 id="jc-ob-title">Всё нужное тренеру — под рукой</h2><p>Планируйте занятие, отмечайте спортсменов и запускайте тренировку без лишних экранов.</p></div>
+    <div class="jc-ob-slide" data-ob="1"><div class="jc-ob-icon">⏱</div><h2>Тренировка — в один тап</h2><p>Группа → присутствие → таймер → заметка. Можно работать одной рукой прямо в зале.</p></div>
+    <div class="jc-ob-slide" data-ob="2"><div class="jc-ob-icon">👥</div><h2>Данные остаются с вами</h2><p>Начните без регистрации. Аккаунт нужен только для облачной синхронизации и переноса данных.</p></div>
+    <div class="jc-ob-actions"><button type="button" class="btn ghost" id="jc-ob-skip">Пропустить</button><button type="button" class="btn" id="jc-ob-next">Далее</button></div>
+  </div>
+</div>
 <div class="app" id="main-content">
 
   <div class="header" role="banner" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -28,6 +38,73 @@
       <button id="sos-btn" title="Экстренная связь с родителями" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--belt-red);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;padding:0;">SOS</button>
     </div>
   </div>
+
+  <!-- Supabase Cloud: email/password + personal cloud data -->
+  <section class="card jc-auth-card" id="main-auth-card" style="margin:12px 16px 12px;padding:14px;">
+    <div class="jc-auth-head">
+      <div>
+        <div style="font-weight:800;font-size:17px;">☁️ Judo Coach Cloud</div>
+        <div id="main-auth-status" class="jc-auth-status">Вход и регистрация · email + пароль</div>
+      </div>
+      <span id="main-auth-role" class="jc-role-badge" style="display:none;" hidden></span>
+    </div>
+
+    <div id="auth-logged-out">
+      <div class="jc-auth-tabs">
+        <button type="button" class="jc-auth-tab active" id="auth-tab-login">Войти</button>
+        <button type="button" class="jc-auth-tab" id="auth-tab-register">Создать аккаунт</button>
+      </div>
+
+      <form id="auth-login-form" class="jc-auth-form">
+        <label>Электронная почта
+          <input id="auth-login-email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <label>Пароль
+          <input id="auth-login-password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••">
+        </label>
+        <button class="btn" type="submit">🔐 Войти</button>
+        <button class="jc-link-btn" type="button" id="auth-reset-password">Забыли пароль?</button>
+      </form>
+
+      <form id="auth-register-form" class="jc-auth-form" style="display:none;">
+        <label>Ваше имя
+          <input id="auth-register-name" type="text" autocomplete="name" required placeholder="Имя и фамилия">
+        </label>
+        <label>Электронная почта
+          <input id="auth-register-email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <label>Пароль
+          <input id="auth-register-password" type="password" autocomplete="new-password" required minlength="6" placeholder="Не менее 6 символов">
+        </label>
+        <label>Повторите пароль
+          <input id="auth-register-password2" type="password" autocomplete="new-password" required minlength="6" placeholder="Повторите пароль">
+        </label>
+
+        <button class="btn" type="submit">🚀 Создать аккаунт</button>
+        <div class="jc-auth-status">Данные каждого аккаунта хранятся отдельно и видны только ему.</div>
+      </form>
+
+      <div id="auth-message" class="jc-auth-message" role="status" aria-live="polite"></div>
+    </div>
+
+    <div id="auth-logged-in" style="display:none;">
+      <div id="main-auth-user" class="jc-auth-user"></div>
+      <div id="main-auth-club" class="jc-auth-status"></div>
+      <div id="main-auth-actions" class="jc-auth-actions">
+        <button class="btn small" id="main-firebase-sync" type="button">☁️ Синхронизировать</button>
+        <button class="btn ghost small" id="main-firebase-signout" type="button">Выйти</button>
+      </div>
+      <div id="auth-migration-password" class="jc-first-club" style="display:none;margin-top:10px;">
+        <div class="jc-first-club-title">🔑 Завершить переход на email + пароль</div>
+        <div class="jc-auth-status">Если этот аккаунт раньше входил через Google, можно один раз задать пароль. После этого вход в Judo Coach будет выполняться только по email и паролю.</div>
+        <div class="jc-auth-form" style="margin-top:8px;">
+          <input id="auth-migration-password-input" type="password" minlength="6" placeholder="Новый пароль">
+          <input id="auth-migration-password2" type="password" minlength="6" placeholder="Повторите пароль">
+          <button class="btn small" id="auth-migration-password-btn" type="button">Сохранить пароль</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Блоки ниже (облако, экспорт/импорт, телеграм-канал) показываются внутри раздела "Ещё" -->
   <div id="legacy-more-content" style="display:none;">
@@ -79,14 +156,13 @@
 
 <div class="tabs legacy-tabs">
     <div class="tab active" data-tab="today">Сегодня</div>
-    <div class="tab" data-tab="training">Тренировка</div>
     <div class="tab" data-tab="rules-pdf">Правила ФДР</div>
     <div class="tab" data-tab="timers">Таймеры</div>
     <div class="tab" data-tab="roster">Ученики</div>
     <div class="tab" data-tab="library">Библиотека</div>
     <div class="tab" data-tab="stats">Статистика</div>
     <div class="tab" data-tab="exams">Экзамены</div>
-    <div class="tab" data-tab="ofp">ОФП</div>
+    <div class="tab" data-tab="ofp">СФП</div>
     <div class="tab" data-tab="competitions">Соревнования</div>
     <div class="tab" data-tab="constructor">Конструктор</div>
     <div class="tab" data-tab="more">Ещё</div>
@@ -94,71 +170,70 @@
 
   <!-- ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" -->
   <div class="panel active" id="panel-today">
-    <div class="today-hero jc-today-hero">
+    <div class="today-hero">
       <div class="t-date" id="today-date-str">—</div>
-      <div class="t-title" id="today-title-str">Сегодня</div>
-      <div class="today-focus" id="today-focus-summary">Загрузка ближайшей тренировки…</div>
-      <button class="btn gold today-primary" id="today-start-training" type="button">▶ НАЧАТЬ ТРЕНИРОВКУ</button>
+      <div class="t-title" id="today-title-str">Добро пожаловать</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn gold small" id="today-start-training">▶ Начать тренировку</button>
+        <button class="btn secondary small" id="today-open-timer">⏱ Таймер</button>
+      </div>
     </div>
 
-    <div class="quick-grid jc-quick-grid" aria-label="Быстрые действия">
-      <button class="quick-item" id="today-open-schedule" type="button"><span class="q-ic">📅</span><span class="q-lbl">Расписание</span></button>
-      <button class="quick-item" id="today-open-roster" type="button"><span class="q-ic">👥</span><span class="q-lbl">Спортсмены</span></button>
-      <button class="quick-item" id="today-open-timer" type="button"><span class="q-ic">⏱</span><span class="q-lbl">Таймер</span></button>
-      <button class="quick-item" id="today-open-note" type="button"><span class="q-ic">🎙</span><span class="q-lbl">Быстрая заметка</span></button>
+    <div class="quick-grid" aria-label="Быстрые действия">
+      <div class="quick-item" id="quick-calendar" role="button" tabindex="0"><span class="q-ic">📅</span><span class="q-lbl">Расписание</span></div>
+      <div class="quick-item" id="quick-roster" role="button" tabindex="0"><span class="q-ic">👥</span><span class="q-lbl">Спортсмены</span></div>
+      <div class="quick-item" id="quick-timer" role="button" tabindex="0"><span class="q-ic">⏱</span><span class="q-lbl">Таймер</span></div>
+      <div class="quick-item" id="quick-note" role="button" tabindex="0"><span class="q-ic">🎙</span><span class="q-lbl">Заметка</span></div>
+    </div>
+
+    <div class="today-section-title">Календарь</div>
+    <div class="card">
+      <div class="cal-head">
+        <div class="month" id="cal-month">—</div>
+        <div class="cal-nav">
+          <button id="prev-month">‹</button>
+          <button id="today-btn">•</button>
+          <button id="next-month">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-dow"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <span><i style="background:var(--gold)"></i>запланирована</span>
+        <span><i style="background:var(--ok)"></i>проведена</span>
+        <span><i style="background:var(--belt-red)"></i>отменена</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="plan-date" id="plan-date">Выберите день</div>
+      <div id="sessions-container"></div>
+      <div class="actions">
+        <button class="btn" id="add-session">➕ Добавить тренировку на этот день</button>
+        <button class="btn secondary" id="save-day">Сохранить день</button>
+        <button class="btn danger" id="clear-day">🗑 Очистить день</button>
+        <button class="btn ghost" id="copy-next-week">📅 Скопировать на след. неделю</button>
+        <button class="btn ghost" id="print-day-pdf">🖨️ Печать / PDF (этот день)</button>
+        </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">🎙 Быстрая голосовая заметка</h3>
+      <div style="display:flex;gap:8px;align-items:flex-start;">
+        <textarea id="today-quick-note" rows="2" placeholder="Заметка на сегодня (сохраняется автоматически)..." style="width:100%;flex:1;"></textarea>
+        <button id="voice-note-btn" title="Надиктовать заметку" style="flex-shrink:0;width:44px;height:44px;border-radius:50%;background:var(--navy,var(--belt-red));color:#fff;border:none;font-size:18px;cursor:pointer;">🎙</button>
+      </div>
+      <div id="voice-note-status" style="font-size:11.5px;color:var(--dim);margin-top:4px;"></div>
     </div>
 
     <div class="today-section-title">Сегодняшняя тренировка</div>
-    <div class="card jc-session-card" id="today-session-card">
-      <div class="session-card-loading">Загрузка…</div>
-    </div>
-
     <div class="card" id="training-intelligence-card">
-      <div class="jc-card-heading"><div><div class="section-kicker">Фокус тренировки</div><h3 class="section-title">🎯 Тренировочные задачи</h3></div></div>
+      <h3 class="section-title">🎯 Тренировочные задачи</h3>
       <div id="training-intelligence-list"></div>
     </div>
 
-    <details class="jc-disclosure" id="today-schedule-details">
-      <summary><span>📅 Расписание и план</span><span class="jc-summary-arrow">›</span></summary>
-      <div class="jc-disclosure-body">
-        <div class="card jc-calendar-card">
-          <div class="cal-head">
-            <div class="month" id="cal-month">—</div>
-            <div class="cal-nav">
-              <button id="prev-month" aria-label="Предыдущий месяц">‹</button>
-              <button id="today-btn" aria-label="Сегодня">•</button>
-              <button id="next-month" aria-label="Следующий месяц">›</button>
-            </div>
-          </div>
-          <div class="cal-grid" id="cal-dow"></div>
-          <div class="cal-grid" id="cal-grid"></div>
-          <div class="cal-legend">
-            <span><i style="background:var(--gold)"></i>запланирована</span>
-            <span><i style="background:var(--ok)"></i>проведена</span>
-            <span><i style="background:var(--belt-red)"></i>отменена</span>
-          </div>
-        </div>
-        <div class="card">
-          <div class="plan-date" id="plan-date">Выберите день</div>
-          <div id="sessions-container"></div>
-          <div class="actions">
-            <button class="btn" id="add-session">➕ Добавить тренировку</button>
-            <button class="btn secondary" id="save-day">Сохранить день</button>
-            <button class="btn danger" id="clear-day">🗑 Очистить день</button>
-            <button class="btn ghost" id="copy-next-week">📅 На след. неделю</button>
-            <button class="btn ghost" id="print-day-pdf">🖨️ Печать / PDF</button>
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <div class="today-section-title">Заметка</div>
-    <div class="card jc-note-card" id="today-note-card">
-      <div class="jc-note-row">
-        <textarea id="today-quick-note" rows="2" placeholder="Надиктуйте или напишите короткую заметку…"></textarea>
-        <button id="voice-note-btn" title="Надиктовать заметку" aria-label="Надиктовать заметку">🎙</button>
-      </div>
-      <div id="voice-note-status" class="jc-note-status"></div>
+    <div class="card" id="today-session-card">
+      <div style="color:var(--dim);font-size:13.5px;">Загрузка…</div>
     </div>
 
     <div class="today-section-title">Последние видео</div>
@@ -168,41 +243,6 @@
       <div class="today-section-title">Ближайшее соревнование</div>
       <div class="card" id="today-next-comp"></div>
     </div>
-  </div>
-
-  <!-- РЕЖИМ "ВО ВРЕМЯ ТРЕНИРОВКИ" -->
-  <div class="panel" id="panel-training">
-    <div class="jc-training-top">
-      <button class="jc-back-btn" id="training-back-today" type="button" aria-label="Вернуться на Сегодня">←</button>
-      <div>
-        <div class="section-kicker">ТРЕНИРОВКА</div>
-        <h2 id="training-panel-title">Сегодня</h2>
-      </div>
-      <div class="jc-training-step">1 / 3</div>
-    </div>
-
-    <div class="card jc-live-card">
-      <div class="jc-live-phase" id="training-live-phase">РАЗМИНКА</div>
-      <div class="jc-live-time" id="training-live-time">04:32</div>
-      <div class="jc-live-ring" aria-hidden="true"><span>▶</span></div>
-      <div class="jc-next-label">Следующее</div>
-      <div class="jc-next-exercise" id="training-next-exercise">Uchikomi</div>
-      <div class="jc-next-dose" id="training-next-dose">3 × 30 сек</div>
-    </div>
-
-    <div class="jc-action-grid">
-      <button class="jc-action-card" id="training-open-roster" type="button"><span>👥</span><b>Ученики</b></button>
-      <button class="jc-action-card" id="training-open-timer" type="button"><span>⏱</span><b>Таймер</b></button>
-      <button class="jc-action-card" id="training-open-video" type="button"><span>▶</span><b>Видео</b></button>
-      <button class="jc-action-card" id="training-open-note" type="button"><span>🎙</span><b>Заметка</b></button>
-    </div>
-
-    <div class="card jc-training-plan-card">
-      <div class="section-kicker">ТЕКУЩАЯ ТРЕНИРОВКА</div>
-      <div id="training-plan-content">Выберите тренировку на сегодня, чтобы увидеть план.</div>
-    </div>
-
-    <button class="btn ghost jc-training-finish" id="training-finish" type="button">Завершить и вернуться к Сегодня</button>
   </div>
 
   <!-- ПРАВИЛА ФДР (полный PDF) -->
@@ -430,10 +470,10 @@
     </div>
   </div>
 
-  <!-- ОФП-АТТЕСТАЦИЯ -->
+  <!-- СФП-АТТЕСТАЦИЯ -->
   <div class="panel" id="panel-ofp">
     <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">Новая аттестация ОФП</h3>
+      <h3 class="section-title">Новая аттестация СФП</h3>
       <label>Дата</label>
       <input type="date" id="ofp-new-date">
       <div class="divider"></div>
@@ -507,117 +547,32 @@
 
   <!-- ЕЩЁ -->
   <div class="panel" id="panel-more">
-    <div class="jc-more-header">
-      <div class="section-kicker">НАСТРОЙКИ И ИНСТРУМЕНТЫ</div>
-      <h2>Ещё</h2>
-      <p>Редко используемые функции собраны здесь, чтобы не мешать тренировке.</p>
+    <div class="card" id="pro-status-card" style="margin-bottom:12px;">
+      <h3 class="section-title">Версия приложения</h3>
+      <div id="pro-status-text" style="margin:6px 0 10px;font-size:14px;"></div>
+      <button class="btn small gold" id="pro-status-btn">Подробнее о полной версии</button>
     </div>
-
-    <div class="card jc-more-section">
-      <div class="section-kicker">ТАЙМЕРЫ</div>
-      <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="timers"><span class="more-tile-ic">⏱</span><span>Таймеры</span></div>
-      </div>
-    </div>
-
-    <div class="card jc-more-section">
-      <div class="section-kicker">ПЛАНИРОВАНИЕ</div>
+    <div class="card" style="margin-bottom:12px;">
+      <h3 class="section-title">🏋 Планирование</h3>
       <div class="more-subnav more-grid">
         <div class="chip more-tile" data-subtab="constructor"><span class="more-tile-ic">🧩</span><span>Конструктор<br>тренировки</span></div>
       </div>
     </div>
-
-    <div class="card jc-more-section">
-      <div class="section-kicker">СПОРТСМЕНЫ И ПРОГРЕСС</div>
+    <div class="card" style="margin-bottom:12px;">
+      <h3 class="section-title">📈 Прогресс спортсменов</h3>
       <div class="more-subnav more-grid">
         <div class="chip more-tile" data-subtab="exams"><span class="more-tile-ic">🎓</span><span>Экзамены</span></div>
-        <div class="chip more-tile" data-subtab="ofp"><span class="more-tile-ic">💪</span><span>ОФП</span></div>
+        <div class="chip more-tile" data-subtab="ofp"><span class="more-tile-ic">💪</span><span>СФП</span></div>
         <div class="chip more-tile" data-subtab="competitions"><span class="more-tile-ic">🏆</span><span>Соревнования</span></div>
         <div class="chip more-tile" data-subtab="stats"><span class="more-tile-ic">📊</span><span>Статистика</span></div>
       </div>
     </div>
-
-    <div class="card jc-more-section">
-      <div class="section-kicker">ТЕРМИНОЛОГИЯ И ДОКУМЕНТЫ</div>
+    <div class="card" style="margin-bottom:12px;">
+      <h3 class="section-title">📚 Помощник и документы</h3>
       <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="library"><span class="more-tile-ic">📚</span><span>Терминология</span></div>
         <div class="chip more-tile" data-subtab="rules-pdf"><span class="more-tile-ic">📜</span><span>Правила</span></div>
       </div>
     </div>
-
-    <div class="card jc-more-section" id="pro-status-card">
-      <div class="section-kicker">ВЕРСИЯ</div>
-      <div id="pro-status-text" style="margin:6px 0 10px;font-size:14px;"></div>
-      <button class="btn small gold" id="pro-status-btn">Подробнее о полной версии</button>
-    </div>
-
-  <section class="card jc-auth-card" id="main-auth-card" style="margin:12px 16px 12px;padding:14px;">
-    <div class="jc-auth-head">
-      <div>
-        <div style="font-weight:800;font-size:17px;">☁️ Judo Coach Cloud</div>
-        <div id="main-auth-status" class="jc-auth-status">Вход и регистрация · email + пароль</div>
-      </div>
-      <span id="main-auth-role" class="jc-role-badge" style="display:none;" hidden></span>
-    </div>
-
-    <div id="auth-logged-out">
-      <div class="jc-auth-tabs">
-        <button type="button" class="jc-auth-tab active" id="auth-tab-login">Войти</button>
-        <button type="button" class="jc-auth-tab" id="auth-tab-register">Создать аккаунт</button>
-      </div>
-
-      <form id="auth-login-form" class="jc-auth-form">
-        <label>Электронная почта
-          <input id="auth-login-email" type="email" autocomplete="email" required placeholder="you@example.com">
-        </label>
-        <label>Пароль
-          <input id="auth-login-password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••">
-        </label>
-        <button class="btn" type="submit">🔐 Войти</button>
-        <button class="jc-link-btn" type="button" id="auth-reset-password">Забыли пароль?</button>
-      </form>
-
-      <form id="auth-register-form" class="jc-auth-form" style="display:none;">
-        <label>Ваше имя
-          <input id="auth-register-name" type="text" autocomplete="name" required placeholder="Имя и фамилия">
-        </label>
-        <label>Электронная почта
-          <input id="auth-register-email" type="email" autocomplete="email" required placeholder="you@example.com">
-        </label>
-        <label>Пароль
-          <input id="auth-register-password" type="password" autocomplete="new-password" required minlength="6" placeholder="Не менее 6 символов">
-        </label>
-        <label>Повторите пароль
-          <input id="auth-register-password2" type="password" autocomplete="new-password" required minlength="6" placeholder="Повторите пароль">
-        </label>
-
-        <button class="btn" type="submit">🚀 Создать аккаунт</button>
-        <div class="jc-auth-status">Данные каждого аккаунта хранятся отдельно и видны только ему.</div>
-      </form>
-
-      <div id="auth-message" class="jc-auth-message" role="status" aria-live="polite"></div>
-    </div>
-
-    <div id="auth-logged-in" style="display:none;">
-      <div id="main-auth-user" class="jc-auth-user"></div>
-      <div id="main-auth-club" class="jc-auth-status"></div>
-      <div id="main-auth-actions" class="jc-auth-actions">
-        <button class="btn small" id="main-firebase-sync" type="button">☁️ Синхронизировать</button>
-        <button class="btn ghost small" id="main-firebase-signout" type="button">Выйти</button>
-      </div>
-      <div id="auth-migration-password" class="jc-first-club" style="display:none;margin-top:10px;">
-        <div class="jc-first-club-title">🔑 Завершить переход на email + пароль</div>
-        <div class="jc-auth-status">Если этот аккаунт раньше входил через Google, можно один раз задать пароль. После этого вход в Judo Coach будет выполняться только по email и паролю.</div>
-        <div class="jc-auth-form" style="margin-top:8px;">
-          <input id="auth-migration-password-input" type="password" minlength="6" placeholder="Новый пароль">
-          <input id="auth-migration-password2" type="password" minlength="6" placeholder="Повторите пароль">
-          <button class="btn small" id="auth-migration-password-btn" type="button">Сохранить пароль</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
     <div id="more-legacy-slot"></div>
   </div>
 
@@ -699,9 +654,9 @@
 <div class="bottom-nav" role="navigation" aria-label="Основная навигация">
   <div class="bn-item active" data-nav="today" role="button" tabindex="0" aria-label="Сегодня"><span class="bn-ic" aria-hidden="true">⌂</span><span>Сегодня</span></div>
   <div class="bn-item" data-nav="training" role="button" tabindex="0" aria-label="Тренировка"><span class="bn-ic" aria-hidden="true">🥋</span><span>Тренировка</span></div>
-  <div class="bn-item" data-nav="roster" role="button" tabindex="0" aria-label="Спортсмены"><span class="bn-ic" aria-hidden="true">♙</span><span>Спортсмены</span></div>
-  <div class="bn-item" data-nav="library" role="button" tabindex="0" aria-label="Техника"><span class="bn-ic" aria-hidden="true">▤</span><span>Техника</span></div>
-  <div class="bn-item" data-nav="more" role="button" tabindex="0" aria-label="Ещё"><span class="bn-ic" aria-hidden="true">⋯</span><span>Ещё</span></div>
+  <div class="bn-item" data-nav="roster" role="button" tabindex="0" aria-label="Спортсмены"><span class="bn-ic" aria-hidden="true">👥</span><span>Спортсмены</span></div>
+  <div class="bn-item" data-nav="library" role="button" tabindex="0" aria-label="Техника"><span class="bn-ic" aria-hidden="true">📚</span><span>Техника</span></div>
+  <div class="bn-item" data-nav="more" role="button" tabindex="0" aria-label="Ещё"><span class="bn-ic" aria-hidden="true">•••</span><span>Ещё</span></div>
 </div>
 
 <script src="pro-features.js"></script>

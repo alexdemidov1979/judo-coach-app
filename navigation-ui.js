@@ -102,7 +102,6 @@
       if(t.dataset.tab==='constructor'){ renderConstructor(); }
       if(t.dataset.tab==='rules-pdf'){ loadRulesPdf(); }
       if(t.dataset.tab==='today'){ renderToday(); }
-      if(t.dataset.tab==='training'){ renderTraining(); }
       window.scrollTo(0,0);
     });
   });
@@ -115,6 +114,16 @@
   // ================= НИЖНЯЯ НАВИГАЦИЯ (Сегодня/Техника/Спортсмены/План/Ещё) =================
   document.querySelectorAll('.bn-item').forEach(b=>{
     b.addEventListener('click', ()=>{
+      // «Тренировка» — это рабочий сценарий, а не отдельный технический модуль.
+      // Открываем сегодняшний план/календарь, где сразу доступен выбор группы
+      // и отметка присутствующих.
+      if(b.dataset.nav==='training'){
+        const todayTab = document.querySelector('.tab[data-tab="today"]');
+        if(todayTab) todayTab.click();
+        document.querySelectorAll('.bn-item').forEach(x=>x.classList.toggle('active', x===b));
+        setTimeout(()=>scrollToCalendarSection(), 40);
+        return;
+      }
       const tab = document.querySelector('.tab[data-tab="'+b.dataset.nav+'"]');
       if(tab) tab.click();
     });
@@ -135,6 +144,22 @@
     });
   });
 
+  // ================= ONBOARDING: 3 коротких экрана, без обязательной регистрации =================
+  (function initOnboarding(){
+    const root=document.getElementById('jc-onboarding');
+    if(!root) return;
+    if(localStorage.getItem('jc_onboarding_done')==='1'){ root.hidden=true; return; }
+    root.hidden=false;
+    const slides=[...root.querySelectorAll('.jc-ob-slide')];
+    const dots=[...root.querySelectorAll('.jc-ob-progress span')];
+    let idx=0;
+    function show(n){ idx=Math.max(0,Math.min(slides.length-1,n)); slides.forEach((x,i)=>x.classList.toggle('active',i===idx)); dots.forEach((x,i)=>x.classList.toggle('active',i===idx)); const next=document.getElementById('jc-ob-next'); if(next) next.textContent=idx===slides.length-1?'Начать':'Далее'; }
+    function close(){ localStorage.setItem('jc_onboarding_done','1'); root.hidden=true; }
+    document.getElementById('jc-ob-next')?.addEventListener('click',()=> idx===slides.length-1 ? close() : show(idx+1));
+    document.getElementById('jc-ob-skip')?.addEventListener('click',close);
+    show(0);
+  })();
+
   // ================= ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" =================
   async function renderToday(){
     const now = new Date();
@@ -150,29 +175,17 @@
     let sessions = [];
     try{ const r = await S.get(key); if(r) sessions = JSON.parse(r.value) || []; }catch(e){}
     const card = document.getElementById('today-session-card');
-    const focus = document.getElementById('today-focus-summary');
     if(sessions.length){
-      const current = sessions.slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')))[0];
-      const group = current.group || 'Тренировка';
-      const duration = current.duration ? `${current.duration} мин` : '';
-      if(focus) focus.innerHTML = `<strong>${escapeHtml(current.time||'Сегодня')}</strong><span>${escapeHtml(group)}</span><span>${duration || 'План занятия готов'}</span>`;
-      card.innerHTML = sessions.map((item,idx)=>`
-        <div class="jc-session-row ${idx===0?'is-primary':''}">
-          <div class="jc-session-time">${escapeHtml(item.time||'—')}</div>
-          <div class="jc-session-main">
-            <div class="jc-session-title">${escapeHtml(item.group||'Тренировка')}</div>
-            <div class="jc-session-meta">${item.duration?escapeHtml(String(item.duration))+' мин · ':''}${item.attendance && item.attendance.length ? escapeHtml(String(item.attendance.length))+' спортсменов' : 'спортсмены не отмечены'}</div>
-          </div>
-          ${idx===0?'<span class="jc-session-arrow">›</span>':''}
+      card.innerHTML = sessions.map(s=>`
+        <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line);">
+          <div style="font-weight:600;font-size:14.5px;">${escapeHtml(s.group||'Тренировка')} ${s.time?('· '+escapeHtml(s.time)):''}</div>
+          <div style="font-size:13px;color:var(--dim);">${escapeHtml((s.main||s.warmup||'').slice(0,90))}${(s.main||'').length>90?'…':''}</div>
         </div>`).join('');
     } else {
-      if(focus) focus.innerHTML = `<strong>Сегодня</strong><span>Тренировок пока нет</span><span>Добавьте занятие в расписание</span>`;
-      card.innerHTML = `<div class="jc-empty-session"><div class="jc-empty-icon">🥋</div><div><b>На сегодня ничего не запланировано</b><span>Добавьте тренировку — она появится здесь.</span></div><button class="btn small" id="today-add-session-link" type="button">Добавить</button></div>`;
+      card.innerHTML = `<div style="color:var(--dim);font-size:13.5px;">На сегодня тренировок не запланировано. <span style="color:var(--navy);cursor:pointer;font-weight:600;" id="today-add-session-link">Добавить тренировку →</span></div>`;
       const link = document.getElementById('today-add-session-link');
       if(link) link.addEventListener('click', scrollToCalendarSection);
     }
-    window.__judoTodaySessions = sessions;
-    renderTraining();
 
     const roster = await getRoster();
 
@@ -215,69 +228,20 @@
     noteEl.oninput = ()=>{ clearTimeout(noteTimer); noteTimer=setTimeout(()=>S.set('today_quicknote', noteEl.value), 400); };
   }
 
-  // Фокусный экран тренировки: здесь тренер работает во время занятия, не возвращаясь к общей навигации.
-  function renderTraining(){
-    const list = Array.isArray(window.__judoTodaySessions) ? window.__judoTodaySessions : [];
-    const title = document.getElementById('training-panel-title');
-    const plan = document.getElementById('training-plan-content');
-    const next = document.getElementById('training-next-exercise');
-    const dose = document.getElementById('training-next-dose');
-    if(!title || !plan) return;
-    if(!list.length){
-      title.textContent = 'Сегодня';
-      plan.innerHTML = `<div class="jc-empty-plan"><b>Тренировка не выбрана</b><span>Откройте «Сегодня → Расписание» и добавьте занятие.</span><button class="btn small" type="button" id="training-add-plan">Открыть расписание</button></div>`;
-      if(next) next.textContent='Uchikomi';
-      if(dose) dose.textContent='3 × 30 сек';
-      document.getElementById('training-add-plan')?.addEventListener('click', ()=>{
-        document.querySelector('.tab[data-tab="today"]')?.click();
-        setTimeout(scrollToCalendarSection,120);
-      });
-      return;
-    }
-    const s=list.slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||'')))[0];
-    title.textContent = s.group || 'Тренировка';
-    const sections=[
-      s.warmup ? `<div><b>Разминка</b><span>${escapeHtml(s.warmup)}</span></div>` : '',
-      s.main ? `<div><b>Основная часть</b><span>${escapeHtml(s.main)}</span></div>` : '',
-      s.cooldown ? `<div><b>Заминка</b><span>${escapeHtml(s.cooldown)}</span></div>` : '',
-      s.notes ? `<div><b>Заметки</b><span>${escapeHtml(s.notes)}</span></div>` : ''
-    ].filter(Boolean);
-    plan.innerHTML = sections.length ? sections.join('') : `<div class="jc-empty-plan"><b>${escapeHtml(s.time||'Сегодня')} · ${escapeHtml(s.group||'Тренировка')}</b><span>План пока пустой. Его можно заполнить в расписании.</span></div>`;
-    if(next) next.textContent = s.main ? 'Следующий блок' : 'Uchikomi';
-    if(dose) dose.textContent = s.duration ? `${s.duration} мин занятие` : '3 × 30 сек';
-  }
-
-  // Плавно открывает расписание на главном экране.
+  // Плавно прокручивает к блоку календаря на главном экране (вместо перехода на отдельную вкладку — её больше нет)
   function scrollToCalendarSection(){
-    const details = document.getElementById('today-schedule-details');
-    if(details) details.open = true;
     const el = document.getElementById('cal-month');
-    if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth', block:'start'}),80);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
   }
 
-  function openPanel(name){
-    const tab=document.querySelector('.tab[data-tab="'+name+'"]');
-    if(tab) tab.click();
-  }
+  function activateTab(tabName){ const tab=document.querySelector('.tab[data-tab="'+tabName+'"]'); if(tab) tab.click(); }
+  document.getElementById('quick-calendar')?.addEventListener('click', scrollToCalendarSection);
+  document.getElementById('quick-roster')?.addEventListener('click', ()=>activateTab('roster'));
+  document.getElementById('quick-timer')?.addEventListener('click', ()=>activateTab('timers'));
+  document.getElementById('quick-note')?.addEventListener('click', ()=>document.getElementById('today-quick-note')?.scrollIntoView({behavior:'smooth',block:'center'}));
 
-  document.getElementById('today-open-schedule')?.addEventListener('click', scrollToCalendarSection);
-  document.getElementById('today-open-roster')?.addEventListener('click', ()=>openPanel('roster'));
-  document.getElementById('today-open-timer')?.addEventListener('click', ()=>openPanel('timers'));
-  document.getElementById('today-open-note')?.addEventListener('click', ()=>{
-    const note=document.getElementById('today-note-card');
-    if(note) note.scrollIntoView({behavior:'smooth',block:'center'});
-    document.getElementById('today-quick-note')?.focus();
-  });
-  document.getElementById('today-start-training')?.addEventListener('click', ()=>openPanel('training'));
-  document.getElementById('training-back-today')?.addEventListener('click', ()=>openPanel('today'));
-  document.getElementById('training-finish')?.addEventListener('click', ()=>openPanel('today'));
-  document.getElementById('training-open-roster')?.addEventListener('click', ()=>openPanel('roster'));
-  document.getElementById('training-open-timer')?.addEventListener('click', ()=>openPanel('timers'));
-  document.getElementById('training-open-video')?.addEventListener('click', ()=>openPanel('library'));
-  document.getElementById('training-open-note')?.addEventListener('click', ()=>{
-    openPanel('today');
-    setTimeout(()=>{ const note=document.getElementById('today-note-card'); note?.scrollIntoView({behavior:'smooth',block:'center'}); document.getElementById('today-quick-note')?.focus(); },120);
-  });
+  document.getElementById('today-open-timer').addEventListener('click', ()=>document.querySelector('.tab[data-tab="timers"]').click());
+  document.getElementById('today-start-training').addEventListener('click', ()=>{ const b=document.querySelector('.bn-item[data-nav="training"]'); if(b) b.click(); else scrollToCalendarSection(); });
 
   // ---------- Голосовая заметка (Web Speech API) ----------
   (function initVoiceNote(){
