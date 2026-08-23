@@ -152,7 +152,7 @@
     <div class="tab" data-tab="library">Библиотека</div>
     <div class="tab" data-tab="stats">Статистика</div>
     <div class="tab" data-tab="exams">Экзамены</div>
-    <div class="tab" data-tab="ofp">ОФП</div>
+    <div class="tab" data-tab="sfp">СФП</div>
     <div class="tab" data-tab="competitions">Соревнования</div>
     <div class="tab" data-tab="constructor">Конструктор</div>
     <div class="tab" data-tab="more">Ещё</div>
@@ -453,28 +453,28 @@
     </div>
   </div>
 
-  <!-- ОФП-АТТЕСТАЦИЯ -->
-  <div class="panel" id="panel-ofp">
+  <!-- СФП-АТТЕСТАЦИЯ -->
+  <div class="panel" id="panel-sfp">
     <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">Новая аттестация ОФП</h3>
+      <h3 class="section-title">Новая аттестация СФП</h3>
       <label>Дата</label>
-      <input type="date" id="ofp-new-date">
+      <input type="date" id="sfp-new-date">
       <div class="divider"></div>
-      <div id="ofp-new-form"></div>
+      <div id="sfp-new-form"></div>
       <div class="actions" style="margin-top:12px;">
-        <button class="btn" id="ofp-save">Сохранить аттестацию</button>
+        <button class="btn" id="sfp-save">Сохранить аттестацию</button>
       </div>
     </div>
     <div class="card" style="margin-bottom:12px;">
       <h3 class="section-title">📈 Прогресс ученика</h3>
-      <select id="ofp-progress-select">
+      <select id="sfp-progress-select">
         <option value="">Выбрать ученика...</option>
       </select>
-      <div id="ofp-progress-view" style="margin-top:10px;"></div>
+      <div id="sfp-progress-view" style="margin-top:10px;"></div>
     </div>
     <div class="card">
       <h3 class="section-title">История аттестаций</h3>
-      <div id="ofp-history-list"></div>
+      <div id="sfp-history-list"></div>
     </div>
   </div>
 
@@ -545,7 +545,7 @@
       <h3 class="section-title">📈 Прогресс спортсменов</h3>
       <div class="more-subnav more-grid">
         <div class="chip more-tile" data-subtab="exams"><span class="more-tile-ic">🎓</span><span>Экзамены</span></div>
-        <div class="chip more-tile" data-subtab="ofp"><span class="more-tile-ic">💪</span><span>ОФП</span></div>
+        <div class="chip more-tile" data-subtab="sfp"><span class="more-tile-ic">🏋️</span><span>СФП</span></div>
         <div class="chip more-tile" data-subtab="competitions"><span class="more-tile-ic">🏆</span><span>Соревнования</span></div>
         <div class="chip more-tile" data-subtab="stats"><span class="more-tile-ic">📊</span><span>Статистика</span></div>
       </div>

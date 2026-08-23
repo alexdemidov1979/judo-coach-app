@@ -275,12 +275,14 @@
     }
   };
 
-  // ---------- Автосинхронизация Firebase ----------
+  // ---------- Автооблачная синхронизация ----------
   let autoCloudSyncTimer = null;
   function scheduleAutoCloudSync(){
+    if(window.__JUDO_SUPPRESS_AUTO_SYNC) return;
     clearTimeout(autoCloudSyncTimer);
     autoCloudSyncTimer = setTimeout(()=>{
-      if(typeof window.firebaseCloudUpload === 'function') window.firebaseCloudUpload(true);
+      if(window.__JUDO_SUPPRESS_AUTO_SYNC) return;
+      if(typeof window.cloudUpload === 'function') window.cloudUpload(true);
     }, 1200);
   }
 

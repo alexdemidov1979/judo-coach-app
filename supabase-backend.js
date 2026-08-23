@@ -118,10 +118,13 @@ async function getUserProfile() {
   return currentUser;
 }
 
+// Статус Pro нельзя менять из клиентского JavaScript.
+// Раньше эта функция обновляла profiles.is_pro напрямую, что позволяло
+// авторизованному пользователю потенциально выдать самому себе Pro через API.
+// Оставляем совместимый метод, но он больше не пишет в Supabase. Реальная
+// разблокировка должна выполняться доверенным серверным/RuStore-процессом.
 async function setProStatus(isPro) {
   if (!currentUser) return;
-  const { error } = await sb.from('profiles').update({ is_pro: !!isPro }).eq('id', currentUser.uid);
-  if (error) throw new Error(error.message || 'Не удалось обновить статус Pro.');
   currentUser.isPro = !!isPro;
   saveUserCache(currentUser);
 }

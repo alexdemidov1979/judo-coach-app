@@ -70,7 +70,7 @@
         if(!window.ProFeatures || window.ProFeatures.guardPanel('panel-stats','Статистика тренировок')) renderStats();
       }
       if(t.dataset.tab==='exams'){ renderExams(); }
-      if(t.dataset.tab==='ofp'){ renderOfp(); }
+      if(t.dataset.tab==='sfp'){ renderSfp(); }
       if(t.dataset.tab==='competitions'){ renderCompetitions(); renderCompReports(); }
       if(t.dataset.tab==='constructor'){ renderConstructor(); }
       if(t.dataset.tab==='rules-pdf'){ loadRulesPdf(); }

@@ -147,6 +147,23 @@
     }finally{ syncInProgress = false; }
   }
 
+  // Полностью очищает локальные данные приложения перед переключением аккаунта.
+  // Важно: используем S.delete, но временно блокируем автосинхронизацию,
+  // чтобы удаление старого аккаунта не улетело в облако нового аккаунта.
+  let suppressAutoSync = false;
+  async function clearLocalUserData(){
+    const res = await S.list('');
+    const keys = Array.isArray(res?.keys) ? res.keys : [];
+    suppressAutoSync = true;
+    window.__JUDO_SUPPRESS_AUTO_SYNC = true;
+    try {
+      await Promise.all(keys.map(key => S.delete(key)));
+    } finally {
+      suppressAutoSync = false;
+      window.__JUDO_SUPPRESS_AUTO_SYNC = false;
+    }
+  }
+
   async function downloadFromCloud(silent=false){
     const fb = window.JudoFirebase;
     const user = currentCloudUser || fb?.getCurrentUser?.();
@@ -200,8 +217,9 @@
       }
       cloudInitializedForUid = currentCloudUser.uid;
       showCloudSignedIn(true);
-      setCloudStatus('Загружаем данные аккаунта из облака…', '🟡 Supabase');
+      setCloudStatus('Переключаем локальные данные на новый аккаунт…', '🟡 Supabase');
       try{
+        await clearLocalUserData();
         const docs = await listCloudRows(currentCloudUser.uid);
         const realDocs = docs.filter(d => d.id !== encodeKey('__meta__'));
         if(realDocs.length){ await downloadFromCloud(true); }
@@ -281,9 +299,9 @@
   window.cloudDownload = downloadFromCloud;
   window.cloudCurrentUser = () => currentCloudUser;
   // Backward-compatible names used by the existing UI/data layer.
-  window.firebaseCloudUpload = uploadDumpToCloud;
+  window.cloudUpload = uploadDumpToCloud;
   window.firebaseCloudDownload = downloadFromCloud;
-  window.firebaseCloudCurrentUser = () => currentCloudUser;
+  window.cloudCurrentUser = () => currentCloudUser;
 
   function initUi(){
     $('export-btn')?.addEventListener('click', ()=>exportAllData(false));
