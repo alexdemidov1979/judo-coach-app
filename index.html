@@ -149,7 +149,7 @@
     <div class="tab" data-tab="rules-pdf">Правила ФДР</div>
     <div class="tab" data-tab="timers">Таймеры</div>
     <div class="tab" data-tab="roster">Ученики</div>
-    <div class="tab" data-tab="library">Библиотека</div>
+    <div class="tab" data-tab="library">Техника</div>
     <div class="tab" data-tab="stats">Статистика</div>
     <div class="tab" data-tab="exams">Экзамены</div>
     <div class="tab" data-tab="sfp">СФП</div>
@@ -246,6 +246,10 @@
 
   <!-- TIMERS -->
   <div class="panel" id="panel-timers">
+    <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span style="font-size:13.5px;color:var(--dim);">План тренировки собирается в конструкторе</span>
+      <button class="btn small ghost" id="timers-open-constructor">🧩 Конструктор</button>
+    </div>
     <div class="card">
       <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
         <input type="checkbox" id="voice-toggle" style="width:20px;height:20px;">
@@ -507,6 +511,10 @@
 
   <!-- КОНСТРУКТОР ТРЕНИРОВОК -->
   <div class="panel" id="panel-constructor">
+    <div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span style="font-size:13.5px;color:var(--dim);">Когда план готов — запускайте таймер</span>
+      <button class="btn small ghost" id="constructor-open-timers">⏱ Таймер</button>
+    </div>
     <div class="card" style="margin-bottom:12px;">
       <h3 class="section-title">Добавить блок</h3>
       <div id="constructor-palette" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
@@ -536,27 +544,29 @@
       <button class="btn small gold" id="pro-status-btn">Подробнее о полной версии</button>
     </div>
     <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">🏋 Планирование</h3>
-      <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="constructor"><span class="more-tile-ic">🧩</span><span>Конструктор<br>тренировки</span></div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">📈 Прогресс спортсменов</h3>
+      <h3 class="section-title">📈 Прогресс</h3>
       <div class="more-subnav more-grid">
         <div class="chip more-tile" data-subtab="exams"><span class="more-tile-ic">🎓</span><span>Экзамены</span></div>
         <div class="chip more-tile" data-subtab="sfp"><span class="more-tile-ic">🏋️</span><span>СФП</span></div>
-        <div class="chip more-tile" data-subtab="competitions"><span class="more-tile-ic">🏆</span><span>Соревнования</span></div>
-        <div class="chip more-tile" data-subtab="stats"><span class="more-tile-ic">📊</span><span>Статистика</span></div>
+        <div class="chip more-tile" data-subtab="stats"><span class="more-tile-ic">📊</span><span>Статистика</span><span class="pro-badge">PRO</span></div>
       </div>
     </div>
     <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">📚 Помощник и документы</h3>
+      <h3 class="section-title">🏆 Соревнования</h3>
+      <div class="more-subnav more-grid">
+        <div class="chip more-tile" data-subtab="competitions"><span class="more-tile-ic">🏆</span><span>Соревнования</span></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <h3 class="section-title">📚 Справочник</h3>
       <div class="more-subnav more-grid">
         <div class="chip more-tile" data-subtab="rules-pdf"><span class="more-tile-ic">📜</span><span>Правила</span></div>
       </div>
     </div>
-    <div id="more-legacy-slot"></div>
+    <div class="card" style="margin-bottom:12px;">
+      <h3 class="section-title">⚙️ Настройки и данные</h3>
+      <div id="more-legacy-slot"></div>
+    </div>
   </div>
 
 </div>
@@ -638,7 +648,7 @@
   <div class="bn-item active" data-nav="today" role="button" tabindex="0" aria-label="Сегодня"><span class="bn-ic" aria-hidden="true">🏠</span><span>Сегодня</span></div>
   <div class="bn-item" data-nav="library" role="button" tabindex="0" aria-label="Техника"><span class="bn-ic" aria-hidden="true">🥋</span><span>Техника</span></div>
   <div class="bn-item" data-nav="roster" role="button" tabindex="0" aria-label="Спортсмены"><span class="bn-ic" aria-hidden="true">👥</span><span>Спортсмены</span></div>
-  <div class="bn-item" data-nav="timers" role="button" tabindex="0" aria-label="Таймеры"><span class="bn-ic" aria-hidden="true">⏱</span><span>Таймеры</span></div>
+  <div class="bn-item" data-nav="timers" role="button" tabindex="0" aria-label="Тренировка"><span class="bn-ic" aria-hidden="true">⏱</span><span>Тренировка</span></div>
   <div class="bn-item" data-nav="more" role="button" tabindex="0" aria-label="Ещё"><span class="bn-ic" aria-hidden="true">⚙</span><span>Ещё</span></div>
 </div>
 

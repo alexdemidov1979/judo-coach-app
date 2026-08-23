@@ -184,6 +184,10 @@
   document.getElementById('today-open-timer').addEventListener('click', ()=>document.querySelector('.tab[data-tab="timers"]').click());
   document.getElementById('today-start-training').addEventListener('click', scrollToCalendarSection);
 
+  // ================= СВЯЗКА "ТРЕНИРОВКА": КОНСТРУКТОР ↔ ТАЙМЕР =================
+  document.getElementById('timers-open-constructor')?.addEventListener('click', ()=>document.querySelector('.tab[data-tab="constructor"]').click());
+  document.getElementById('constructor-open-timers')?.addEventListener('click', ()=>document.querySelector('.tab[data-tab="timers"]').click());
+
   // ---------- Голосовая заметка (Web Speech API) ----------
   (function initVoiceNote(){
     const btn = document.getElementById('voice-note-btn');
