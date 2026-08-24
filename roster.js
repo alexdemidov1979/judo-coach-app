@@ -241,7 +241,7 @@
             <div><label>Свидетельство о рождении</label><input type="text" class="e-birthcert" value="${r.birthCertificate||''}" placeholder="номер / есть / отсутствует"></div>
             <div><label>Мед. справка</label><input type="text" class="e-cert" value="${r.medCert||''}" placeholder="дата или статус"></div>
             <div><label>Группа (по возрасту)</label>
-              <select class="e-group" data-auto-set="${r.trainingGroup ? '0' : '1'}">${groupOptionsHtmlSync(groupsList, r.trainingGroup || matchGroupByAge(groupsList, age))}</select>
+              <select class="e-group" data-auto-set="${r.trainingGroup ? '0' : '1'}">${groupOptionsHtmlSync(groupsList, r.trainingGroup)}</select>
             </div>
           </div>
           <div class="paid-toggle">
@@ -398,21 +398,8 @@
         renderRoster();
       });
     });
-    el.querySelectorAll('.e-birth').forEach(inp=>{
-      inp.addEventListener('change', async ()=>{
-        const box = inp.closest('.edit-box');
-        const groupSel = box?.querySelector('.e-group');
-        if(!groupSel) return;
-        // Если группа ещё не была выбрана/сохранена вручную (autoSet=1) —
-        // подставляем её сразу по новой дате рождения, не дожидаясь
-        // переоткрытия карточки.
-        if(groupSel.dataset.autoSet !== '1') return;
-        const groupsList = await getGroups();
-        const matched = matchGroupByAge(groupsList, ageFromBirth(inp.value));
-        groupSel.innerHTML = groupOptionsHtmlSync(groupsList, matched);
-        groupSel.dataset.autoSet = '1';
-      });
-    });
+    // Группа больше не определяется по возрасту. Она выбирается вручную
+    // или приходит из Excel.
     el.querySelectorAll('.e-group').forEach(sel=>{
       sel.addEventListener('change', ()=>{ sel.dataset.autoSet = '0'; });
     });
@@ -617,39 +604,39 @@
     async function importRows(rows, fileName){
       const imported=rows.map(rowToAthlete).filter(Boolean);
       if(!imported.length){ alert('Не найдено ни одной строки с ФИО. Проверьте заголовок «ФИО» или отдельные «Фамилия / Имя / Отчество».'); return; }
-      const groupsList = await getGroups();
       const list=await getRoster();
       const existingByPlayer=new Map(list.filter(x=>x.playerNumber).map(x=>[String(x.playerNumber).trim(),x]));
       const existingByName=new Map(list.map(x=>[norm(x.name),x]));
-      let added=0, updated=0;
-      const pro = window.ProFeatures;
+      const importedGroups=[...new Set(imported.map(x=>String(x.trainingGroup||'').trim()).filter(Boolean))];
+      const usedGroups=new Set(list.map(x=>String(x.trainingGroup||'').trim()).filter(Boolean));
+      let added=0, updated=0, skipped=0;
+      const pro=window.ProFeatures;
       let blockedByLimit=false;
       for(const item of imported){
         const existing=(item.playerNumber && existingByPlayer.get(item.playerNumber)) || existingByName.get(norm(item.name));
         if(existing){
-          // Если в файле группа не указана — не затираем группу, уже
-          // выставленную у ученика вручную (например, если тренер перевёл
-          // его в другую возрастную группу).
+          // Пустая группа в Excel НЕ затирает уже назначенную вручную группу.
           if(!item.trainingGroup) delete item.trainingGroup;
           Object.assign(existing,item,{id:existing.id || item.id,updatedAt:new Date().toISOString(),importedFrom:'excel'});
           updated++;
-        } else {
-          if(pro && !pro.isPro && list.length >= pro.limits.maxAthletes){ blockedByLimit=true; continue; }
-          // Новый ученик — если группа не указана в файле, подставляем её
-          // автоматически по дате рождения, как и при ручном добавлении.
-          if(!item.trainingGroup && item.birthDate){
-            item.trainingGroup = matchGroupByAge(groupsList, ageFromBirth(item.birthDate)) || '';
-          }
+        }else{
+          if(pro && !pro.isPro && list.length >= pro.limits.maxAthletes){ blockedByLimit=true; skipped++; continue; }
+          // Никакого определения группы по возрасту. Только значение из Excel.
+          if(item.trainingGroup) usedGroups.add(item.trainingGroup);
           list.push(item); added++;
         }
       }
+      // Сначала сохраняем спортсменов, затем строим список групп из Excel + уже используемых групп.
       await setRoster(list);
+      if(window.addGroups) await window.addGroups([...importedGroups, ...usedGroups]);
+      if(window.cleanupLegacyDefaultGroups) await window.cleanupLegacyDefaultGroups(list);
       await renderRoster();
       try{ renderSessions(); }catch(e){}
       if(blockedByLimit && pro) pro.requirePro('Больше учеников');
-      alert(`Excel импортирован: ${added} добавлено, ${updated} обновлено.\nФайл: ${fileName}`);
+      const groupsNow=await getGroups();
+      const groupSummary=groupsNow.length ? `\nГруппы: ${groupsNow.map(g=>g.name).join(', ')}` : '\nГруппы: не указаны';
+      alert(`Excel импортирован: ${added} добавлено, ${updated} обновлено${skipped?`, ${skipped} пропущено`:''}.${groupSummary}\nФайл: ${fileName}`);
     }
-
     btn.addEventListener('click',()=>{
       if(window.ProFeatures && !window.ProFeatures.requirePro('Импорт из Excel')) return;
       input.click();

@@ -16,19 +16,9 @@
 </head>
 <body>
 <a href="#main-content" class="skip-link">Перейти к содержимому</a>
-<div id="jc-onboarding" class="jc-onboarding" role="dialog" aria-modal="true" aria-labelledby="jc-ob-title" hidden>
-  <div class="jc-ob-sheet">
-    <div class="jc-ob-brand"><span class="kanji">柔道</span><strong>JUDO COACH</strong></div>
-    <div class="jc-ob-progress"><span class="active"></span><span></span><span></span></div>
-    <div class="jc-ob-slide active" data-ob="0"><div class="jc-ob-icon">🥋</div><h2 id="jc-ob-title">Всё нужное тренеру — под рукой</h2><p>Планируйте занятие, отмечайте спортсменов и запускайте тренировку без лишних экранов.</p></div>
-    <div class="jc-ob-slide" data-ob="1"><div class="jc-ob-icon">⏱</div><h2>Тренировка — в один тап</h2><p>Группа → присутствие → таймер → заметка. Можно работать одной рукой прямо в зале.</p></div>
-    <div class="jc-ob-slide" data-ob="2"><div class="jc-ob-icon">👥</div><h2>Данные остаются с вами</h2><p>Начните без регистрации. Аккаунт нужен только для облачной синхронизации и переноса данных.</p></div>
-    <div class="jc-ob-actions"><button type="button" class="btn ghost" id="jc-ob-skip">Пропустить</button><button type="button" class="btn" id="jc-ob-next">Далее</button></div>
-  </div>
-</div>
 <div class="app" id="main-content">
 
-  <div class="header" role="banner" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+  <div class="header app-header" role="banner">
     <div style="min-width:0;">
       <div class="kanji" aria-hidden="true">柔道</div>
       <div class="sub">Помощник тренера</div>
@@ -173,17 +163,22 @@
     <div class="today-hero">
       <div class="t-date" id="today-date-str">—</div>
       <div class="t-title" id="today-title-str">Добро пожаловать</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn gold small" id="today-start-training">▶ Начать тренировку</button>
-        <button class="btn secondary small" id="today-open-timer">⏱ Таймер</button>
-      </div>
+      <div class="today-hero-sub">Всё важное для тренера — в одном экране</div>
     </div>
 
-    <div class="quick-grid" aria-label="Быстрые действия">
-      <div class="quick-item" id="quick-calendar" role="button" tabindex="0"><span class="q-ic">📅</span><span class="q-lbl">Расписание</span></div>
-      <div class="quick-item" id="quick-roster" role="button" tabindex="0"><span class="q-ic">👥</span><span class="q-lbl">Спортсмены</span></div>
-      <div class="quick-item" id="quick-timer" role="button" tabindex="0"><span class="q-ic">⏱</span><span class="q-lbl">Таймер</span></div>
-      <div class="quick-item" id="quick-note" role="button" tabindex="0"><span class="q-ic">🎙</span><span class="q-lbl">Заметка</span></div>
+    <div class="today-section-title">Быстрые действия</div>
+    <div class="quick-grid coach-actions">
+      <button class="quick-item" id="quick-add-training" type="button"><span class="q-ic">＋</span><span class="q-lbl">Тренировка</span></button>
+      <button class="quick-item" id="quick-attendance" type="button"><span class="q-ic">✓</span><span class="q-lbl">Присутствие</span></button>
+      <button class="quick-item" id="quick-timer" type="button"><span class="q-ic">⏱</span><span class="q-lbl">Таймер</span></button>
+      <button class="quick-item" id="quick-athletes" type="button"><span class="q-ic">●</span><span class="q-lbl">Ученики</span></button>
+    </div>
+
+    <div class="today-section-title">Перед тренировкой</div>
+    <div class="card scenario-card">
+      <div class="scenario-title">План на сегодня</div>
+      <div class="scenario-text">Открой тренировку, выбери группу и отметь состав прямо в ней.</div>
+      <button class="btn small" id="today-open-plan" type="button">Открыть план</button>
     </div>
 
     <div class="today-section-title">Календарь</div>
@@ -470,7 +465,7 @@
     </div>
   </div>
 
-  <!-- СФП-АТТЕСТАЦИЯ -->
+  <!-- ОФП-АТТЕСТАЦИЯ -->
   <div class="panel" id="panel-ofp">
     <div class="card" style="margin-bottom:12px;">
       <h3 class="section-title">Новая аттестация СФП</h3>
@@ -547,35 +542,40 @@
 
   <!-- ЕЩЁ -->
   <div class="panel" id="panel-more">
-    <div class="card" id="pro-status-card" style="margin-bottom:12px;">
-      <h3 class="section-title">Версия приложения</h3>
-      <div id="pro-status-text" style="margin:6px 0 10px;font-size:14px;"></div>
-      <button class="btn small gold" id="pro-status-btn">Подробнее о полной версии</button>
-    </div>
-    <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">🏋 Планирование</h3>
-      <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="constructor"><span class="more-tile-ic">🧩</span><span>Конструктор<br>тренировки</span></div>
+    <div class="more-head">
+      <div>
+        <div class="more-kicker">ИНСТРУМЕНТЫ</div>
+        <h2>Ещё</h2>
+        <div class="more-caption">Редко используемые функции — здесь, чтобы основной экран оставался простым.</div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">📈 Прогресс спортсменов</h3>
-      <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="exams"><span class="more-tile-ic">🎓</span><span>Экзамены</span></div>
-        <div class="chip more-tile" data-subtab="ofp"><span class="more-tile-ic">💪</span><span>СФП</span></div>
-        <div class="chip more-tile" data-subtab="competitions"><span class="more-tile-ic">🏆</span><span>Соревнования</span></div>
-        <div class="chip more-tile" data-subtab="stats"><span class="more-tile-ic">📊</span><span>Статистика</span></div>
-      </div>
+
+    <div class="more-section-card">
+      <div class="more-section-title">Планирование</div>
+      <button class="more-action" data-subtab="constructor" type="button"><span class="more-action-icon">＋</span><span><b>Конструктор тренировки</b><small>Собрать тренировку из готовых блоков</small></span><span class="more-arrow">›</span></button>
     </div>
-    <div class="card" style="margin-bottom:12px;">
-      <h3 class="section-title">📚 Помощник и документы</h3>
-      <div class="more-subnav more-grid">
-        <div class="chip more-tile" data-subtab="rules-pdf"><span class="more-tile-ic">📜</span><span>Правила</span></div>
-      </div>
+
+    <div class="more-section-card">
+      <div class="more-section-title">Спортсмены</div>
+      <button class="more-action" data-subtab="exams" type="button"><span class="more-action-icon">◇</span><span><b>Экзамены</b><small>Аттестация и подготовка к кю</small></span><span class="more-arrow">›</span></button>
+      <button class="more-action" data-subtab="ofp" type="button"><span class="more-action-icon">△</span><span><b>СФП</b><small>Контроль специальной физической подготовки</small></span><span class="more-arrow">›</span></button>
+      <button class="more-action" data-subtab="competitions" type="button"><span class="more-action-icon">□</span><span><b>Соревнования</b><small>Календарь и результаты</small></span><span class="more-arrow">›</span></button>
+      <button class="more-action" data-subtab="stats" type="button"><span class="more-action-icon">▥</span><span><b>Статистика</b><small>Посещаемость и динамика</small></span><span class="more-arrow">›</span></button>
     </div>
+
+    <div class="more-section-card">
+      <div class="more-section-title">Поиск и видео</div>
+      <button class="more-action" id="more-search" type="button"><span class="more-action-icon">⌕</span><span><b>Поиск</b><small>Ученики, техники, термины и материалы</small></span><span class="more-arrow">›</span></button>
+      <button class="more-action" id="more-video-review" type="button"><span class="more-action-icon">▷</span><span><b>Разбор видео</b><small>Видео с телефона, рисунки и голосовые комментарии</small></span><span class="more-arrow">›</span></button>
+    </div>
+
+    <div class="more-section-card">
+      <div class="more-section-title">Документы и данные</div>
+      <button class="more-action" data-subtab="rules-pdf" type="button"><span class="more-action-icon">▤</span><span><b>Правила</b><small>Судейские правила</small></span><span class="more-arrow">›</span></button>
+    </div>
+
     <div id="more-legacy-slot"></div>
   </div>
-
 </div>
 
 <button id="global-search-fab" aria-label="Открыть глобальный поиск" style="position:fixed;right:14px;bottom:76px;z-index:60;width:48px;height:48px;border-radius:50%;background:var(--navy,var(--belt-red));color:#fff;border:none;box-shadow:0 4px 14px rgba(0,0,0,.25);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;">🔍</button>
@@ -651,11 +651,22 @@
   </div>
 </div>
 
+<div class="onboarding" id="onboarding" hidden role="dialog" aria-modal="true" aria-label="Знакомство с Judo Coach">
+  <div class="onboarding-sheet">
+    <div class="onboarding-progress"><span class="on-dot active"></span><span class="on-dot"></span><span class="on-dot"></span><span class="on-dot"></span></div>
+    <div class="onboarding-step active" data-step="0"><div class="on-mark">柔道</div><h2>Judo Coach</h2><p>Рабочий инструмент тренера. План, ученики и таймер — без лишних экранов.</p></div>
+    <div class="onboarding-step" data-step="1"><div class="on-mark">1</div><h2>Перед тренировкой</h2><p>Открой план на сегодня, выбери группу и сразу переходи к тренировке.</p></div>
+    <div class="onboarding-step" data-step="2"><div class="on-mark">2</div><h2>Во время тренировки</h2><p>Отмечай присутствующих одним тапом. Нужный таймер всегда рядом.</p></div>
+    <div class="onboarding-step" data-step="3"><div class="on-mark">3</div><h2>После тренировки</h2><p>Сохрани день, посмотри статистику и вернись к ученикам, когда удобно.</p></div>
+    <div class="onboarding-actions"><button class="btn ghost" id="onboarding-skip" type="button">Пропустить</button><button class="btn" id="onboarding-next" type="button">Далее</button></div>
+  </div>
+</div>
+
 <div class="bottom-nav" role="navigation" aria-label="Основная навигация">
   <div class="bn-item active" data-nav="today" role="button" tabindex="0" aria-label="Сегодня"><span class="bn-ic" aria-hidden="true">⌂</span><span>Сегодня</span></div>
-  <div class="bn-item" data-nav="training" role="button" tabindex="0" aria-label="Тренировка"><span class="bn-ic" aria-hidden="true">🥋</span><span>Тренировка</span></div>
-  <div class="bn-item" data-nav="roster" role="button" tabindex="0" aria-label="Спортсмены"><span class="bn-ic" aria-hidden="true">👥</span><span>Спортсмены</span></div>
-  <div class="bn-item" data-nav="library" role="button" tabindex="0" aria-label="Техника"><span class="bn-ic" aria-hidden="true">📚</span><span>Техника</span></div>
+  <div class="bn-item" data-nav="roster" role="button" tabindex="0" aria-label="Ученики"><span class="bn-ic" aria-hidden="true">●</span><span>Ученики</span></div>
+  <div class="bn-item" data-nav="library" role="button" tabindex="0" aria-label="Техника"><span class="bn-ic" aria-hidden="true">柔</span><span>Техника</span></div>
+  <div class="bn-item" data-nav="timers" role="button" tabindex="0" aria-label="Таймер"><span class="bn-ic" aria-hidden="true">◷</span><span>Таймер</span></div>
   <div class="bn-item" data-nav="more" role="button" tabindex="0" aria-label="Ещё"><span class="bn-ic" aria-hidden="true">•••</span><span>Ещё</span></div>
 </div>
 
@@ -665,7 +676,7 @@
 <script src="roster.js"></script>
 <script src="athlete-core.js"></script>
 <script src="library-ui.js"></script>
-<script src="drive-video-links.js?v=4.1.1"></script>
+<script src="drive-video-links.js?v=4.2.0"></script>
 <script src="library-kyu.js"></script>
 <script src="library-techniques-data.js"></script>
 <script src="library-render.js"></script>
@@ -677,7 +688,7 @@
 <script src="supabase-js.vendor.js"></script>
 <script src="supabase-backend.js"></script>
 <script src="navigation-ui.js"></script>
-<script src="video-tools-misc.js?v=4.1.0"></script>
+<script src="video-tools-misc.js?v=4.2.0"></script>
 
 <!-- ===== ВСТРОЕННЫЙ ВИДЕОПЛЕЕР RUTUBE ===== -->
 <div class="video-modal-overlay" id="video-modal" role="dialog" aria-modal="true" aria-label="Просмотр видео">
@@ -791,11 +802,11 @@
 <script src="video-player.js"></script>
 <script src="fight-review-studio.js"></script>
 <script src="fight-intelligence.js"></script>
-<script src="training-intelligence.js?v=4.1.0"></script>
-<script src="firebase-auth-ui.js?v=4.1.0"></script>
+<script src="training-intelligence.js?v=4.2.0"></script>
+<script src="firebase-auth-ui.js?v=4.2.0"></script>
 
-<script type="module" src="src/core/config/app-config.js?v=4.1.0"></script>
-<script type="module" src="src/core/video/video-source.js?v=4.1.0"></script>
+<script type="module" src="src/core/config/app-config.js?v=4.2.0"></script>
+<script type="module" src="src/core/video/video-source.js?v=4.2.0"></script>
 <script src="native-bridge.js"></script>
 <script src="android-shell.js"></script>
 <script src="sw-register.js"></script>

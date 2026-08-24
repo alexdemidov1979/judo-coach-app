@@ -483,47 +483,29 @@
   }
 
   function sessionAttendanceChipsHtml(session, roster){
-    if(roster.length===0) return '<div class="empty-hint">Добавьте учеников на вкладке «Спортсмены»</div>';
+    if(roster.length===0) return '<div class="empty-hint">Добавьте учеников на вкладке «Ученики»</div>';
+    // Если у тренировки выбрана группа — показываем только учеников этой
+    // группы (по полю trainingGroup), чтобы не искать нужных детей среди
+    // всего списка. Без выбранной группы показываются все, как раньше.
     const groupFilter = String(session.group||'').trim();
     const filtered = groupFilter
       ? roster.filter(r => String(r.trainingGroup||'').trim() === groupFilter)
       : roster;
     if(groupFilter && filtered.length===0){
-      return `<div class="empty-hint">В группе «${escapeHtml(groupFilter)}» пока нет учеников. Добавьте им эту группу в карточке спортсмена.</div>`;
+      return `<div class="empty-hint">В группе «${groupFilter}» пока нет учеников. Укажите эту группу у нужных учеников на вкладке «Ученики», или выберите другую группу.</div>`;
     }
     const status = session.attendanceStatus || {};
     const legacySet = new Set(session.attendance||[]);
-    let present=0, absent=0, excused=0;
-    filtered.forEach(r=>{
-      const st=status[r.name] || (legacySet.has(r.name)?'present':'');
-      if(st==='present') present++;
-      else if(st==='absent') absent++;
-      else if(st==='excused') excused++;
-    });
-    const total=filtered.length;
-    return `
-      <div class="attendance-summary" aria-label="Итоги посещаемости">
-        <div class="att-stat"><div class="n" data-att-present>${present}</div><div class="l">Пришли</div></div>
-        <div class="att-stat"><div class="n" data-att-absent>${absent}</div><div class="l">Нет</div></div>
-        <div class="att-stat"><div class="n" data-att-total>${total}</div><div class="l">В группе</div></div>
-      </div>
-      <div class="attendance-toolbar">
-        <button type="button" class="btn small attendance-all" data-att-action="all">✓ Все пришли</button>
-        <button type="button" class="btn small secondary attendance-all" data-att-action="clear">Снять отметки</button>
-      </div>
-      <div class="attendance-list" aria-label="Отметка присутствия">
-        ${filtered.map(r=>{
-          let st = status[r.name];
-          if(!st && legacySet.has(r.name)) st='present';
-          const cls = st==='present' ? 'att-present' : st==='excused' ? 'att-excused' : st==='absent' ? 'att-absent' : '';
-          const state = st==='present' ? '✓ ПРИШЁЛ' : st==='excused' ? '△ УВАЖ.' : st==='absent' ? '✕ НЕТ' : 'Нажать';
-          return `<button type="button" class="attendance-person ${cls}" data-name="${escapeHtml(r.name).replace(/"/g,'&quot;')}" data-status="${st||''}">
-            <span class="name">${escapeHtml(r.name)}</span><span class="state">${state}</span>
-          </button>`;
-        }).join('')}
-      </div>
-      <div style="font-size:11px;color:var(--dim);margin-top:7px;">Один тап: пришёл → нет → без отметки. Уважительную причину можно выбрать следующим тапом после «НЕТ».</div>`;
+    return `<div class="attendance-list">` + filtered.map(r=>{
+      let st = status[r.name];
+      if(!st && legacySet.has(r.name)) st = 'present'; // обратная совместимость со старыми данными
+      const cls = st==='present' ? 'on att-present' : st==='excused' ? 'on att-excused' : st==='absent' ? 'on att-absent' : '';
+      const icon = st==='present' ? '✓ ' : st==='excused' ? '△ ' : st==='absent' ? '✕ ' : '';
+      return `<div class="chip ${cls}" data-name="${r.name.replace(/"/g,'&quot;')}" data-status="${st||''}">${icon}${r.name}</div>`;
+    }).join('') + `</div>
+    <div style="font-size:11px;color:var(--dim);margin-top:4px;">Тап по ученику переключает: не отмечен → был → по уваж. причине → отсутствовал</div>`;
   }
+
   // ---- единое текстовое окно тренировки (разминка/основная/заминка/заметки) ----
   const COMBINED_HEADERS = [
     {key:'warmup',   re:/^РАЗМИНКА:?\s*$/i,        label:'РАЗМИНКА:'},
@@ -632,37 +614,23 @@
         }
       });
     });
-    wrap.querySelectorAll('.attendance-person').forEach(ch=>{
+    wrap.querySelectorAll('.chip').forEach(ch=>{
       ch.addEventListener('click', ()=>{
         const sessionEl = ch.closest('.session');
         const i = Number(sessionEl.dataset.i);
         const name = ch.dataset.name;
         const cur = ch.dataset.status || '';
-        // Основной сценарий — один тап для отметки. Цикл оставляем совместимым
-        // с прежней логикой: нет → пришёл → уваж. → нет → без отметки.
-        const cycle = {'': 'present', 'present':'absent', 'absent':'', 'excused':'absent'};
+        const cycle = {'': 'present', 'present':'excused', 'excused':'absent', 'absent':''};
         const next = cycle[cur];
         currentSessions[i].attendanceStatus = currentSessions[i].attendanceStatus || {};
         if(next===''){ delete currentSessions[i].attendanceStatus[name]; }
         else { currentSessions[i].attendanceStatus[name] = next; }
+        // держим старое поле attendance в синхроне для обратной совместимости со статистикой
         const presentNames = Object.keys(currentSessions[i].attendanceStatus).filter(n=>currentSessions[i].attendanceStatus[n]==='present');
         currentSessions[i].attendance = presentNames;
         _attStatsCache = null;
         activeSessionIndex = i;
         renderSessions();
-      });
-    });
-    wrap.querySelectorAll('.attendance-all').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const sessionEl=btn.closest('.session');
-        const i=Number(sessionEl.dataset.i);
-        const groupFilter=String(currentSessions[i].group||'').trim();
-        const members=groupFilter ? roster.filter(r=>String(r.trainingGroup||'').trim()===groupFilter) : roster;
-        currentSessions[i].attendanceStatus=currentSessions[i].attendanceStatus||{};
-        if(btn.dataset.attAction==='all') members.forEach(r=>currentSessions[i].attendanceStatus[r.name]='present');
-        else members.forEach(r=>delete currentSessions[i].attendanceStatus[r.name]);
-        currentSessions[i].attendance=members.filter(r=>currentSessions[i].attendanceStatus[r.name]==='present').map(r=>r.name);
-        _attStatsCache=null; activeSessionIndex=i; renderSessions();
       });
     });
     setupVoiceButtons();

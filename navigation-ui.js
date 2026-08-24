@@ -43,21 +43,7 @@
   // Модуль PDF.js грузим только при открытии вкладки (как и Excel-модуль в roster.js) —
   // чтобы не тратить трафик и время запуска, если правила никто не открывает.
   function loadPdfJsLib(){
-    return new Promise((resolve, reject)=>{
-      if(window.pdfjsLib) return resolve(window.pdfjsLib);
-      const existing = document.getElementById('pdfjs-lib-script');
-      if(existing){
-        existing.addEventListener('load', ()=>resolve(window.pdfjsLib), {once:true});
-        existing.addEventListener('error', ()=>reject(new Error('Не удалось загрузить модуль PDF.')), {once:true});
-        return;
-      }
-      const sc = document.createElement('script');
-      sc.id = 'pdfjs-lib-script';
-      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      sc.onload = ()=> window.pdfjsLib ? resolve(window.pdfjsLib) : reject(new Error('Модуль PDF загрузился без pdfjsLib.'));
-      sc.onerror = ()=> reject(new Error('Не удалось загрузить модуль PDF.'));
-      document.head.appendChild(sc);
-    });
+    return Promise.reject(new Error('Встроенный PDF.js не установлен'));
   }
 
   async function loadRulesPdf(){
@@ -66,10 +52,9 @@
     const holder = document.getElementById('rules-pdf-holder');
     holder.innerHTML = '<div class="empty-hint">Загружаю документ…</div>';
     try{
-      const pdfjsLib = await loadPdfJsLib();
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      rulesPdfDoc = await pdfjsLib.getDocument('pravila-mfd.pdf').promise;
-      await renderRulesPdfPage(1);
+      // WebView/браузер не должен зависеть от зарубежного CDN. Если локальный
+      // PDF.js появится в будущем, этот блок автоматически можно вернуть.
+      throw new Error('Локальный PDF-просмотрщик не включён; используйте кнопку «Открыть отдельно».');
     }catch(e){
       console.error('Не удалось открыть PDF правил:', e);
       rulesPdfLoaded = false;
@@ -91,7 +76,7 @@
       t.classList.add('active');
       document.getElementById('panel-'+t.dataset.tab).classList.add('active');
       document.querySelectorAll('.bn-item').forEach(b=>b.classList.toggle('active', b.dataset.nav===t.dataset.tab));
-      if(t.dataset.tab==='roster'){ renderRoster(); try{ renderGroupsManager(); }catch(e){} }
+      if(t.dataset.tab==='roster'){ (async()=>{ try{ const rr=await S.get('roster'); const roster=rr?JSON.parse(rr.value):[]; await ensureGroupsFromRoster(roster); }catch(e){} renderRoster(); try{ renderGroupsManager(); }catch(e){} })(); }
       if(t.dataset.tab==='library'){ renderLibCats(); renderLibrary(); renderTerms(); renderKyu(); renderKodokan(); renderRules(); }
       if(t.dataset.tab==='stats'){
         if(!window.ProFeatures || window.ProFeatures.guardPanel('panel-stats','Статистика тренировок')) renderStats();
@@ -114,16 +99,6 @@
   // ================= НИЖНЯЯ НАВИГАЦИЯ (Сегодня/Техника/Спортсмены/План/Ещё) =================
   document.querySelectorAll('.bn-item').forEach(b=>{
     b.addEventListener('click', ()=>{
-      // «Тренировка» — это рабочий сценарий, а не отдельный технический модуль.
-      // Открываем сегодняшний план/календарь, где сразу доступен выбор группы
-      // и отметка присутствующих.
-      if(b.dataset.nav==='training'){
-        const todayTab = document.querySelector('.tab[data-tab="today"]');
-        if(todayTab) todayTab.click();
-        document.querySelectorAll('.bn-item').forEach(x=>x.classList.toggle('active', x===b));
-        setTimeout(()=>scrollToCalendarSection(), 40);
-        return;
-      }
       const tab = document.querySelector('.tab[data-tab="'+b.dataset.nav+'"]');
       if(tab) tab.click();
     });
@@ -143,22 +118,6 @@
       if(tab) tab.click();
     });
   });
-
-  // ================= ONBOARDING: 3 коротких экрана, без обязательной регистрации =================
-  (function initOnboarding(){
-    const root=document.getElementById('jc-onboarding');
-    if(!root) return;
-    if(localStorage.getItem('jc_onboarding_done')==='1'){ root.hidden=true; return; }
-    root.hidden=false;
-    const slides=[...root.querySelectorAll('.jc-ob-slide')];
-    const dots=[...root.querySelectorAll('.jc-ob-progress span')];
-    let idx=0;
-    function show(n){ idx=Math.max(0,Math.min(slides.length-1,n)); slides.forEach((x,i)=>x.classList.toggle('active',i===idx)); dots.forEach((x,i)=>x.classList.toggle('active',i===idx)); const next=document.getElementById('jc-ob-next'); if(next) next.textContent=idx===slides.length-1?'Начать':'Далее'; }
-    function close(){ localStorage.setItem('jc_onboarding_done','1'); root.hidden=true; }
-    document.getElementById('jc-ob-next')?.addEventListener('click',()=> idx===slides.length-1 ? close() : show(idx+1));
-    document.getElementById('jc-ob-skip')?.addEventListener('click',close);
-    show(0);
-  })();
 
   // ================= ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" =================
   async function renderToday(){
@@ -234,14 +193,8 @@
     if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
   }
 
-  function activateTab(tabName){ const tab=document.querySelector('.tab[data-tab="'+tabName+'"]'); if(tab) tab.click(); }
-  document.getElementById('quick-calendar')?.addEventListener('click', scrollToCalendarSection);
-  document.getElementById('quick-roster')?.addEventListener('click', ()=>activateTab('roster'));
-  document.getElementById('quick-timer')?.addEventListener('click', ()=>activateTab('timers'));
-  document.getElementById('quick-note')?.addEventListener('click', ()=>document.getElementById('today-quick-note')?.scrollIntoView({behavior:'smooth',block:'center'}));
-
   document.getElementById('today-open-timer').addEventListener('click', ()=>document.querySelector('.tab[data-tab="timers"]').click());
-  document.getElementById('today-start-training').addEventListener('click', ()=>{ const b=document.querySelector('.bn-item[data-nav="training"]'); if(b) b.click(); else scrollToCalendarSection(); });
+  document.getElementById('today-start-training').addEventListener('click', scrollToCalendarSection);
 
   // ---------- Голосовая заметка (Web Speech API) ----------
   (function initVoiceNote(){
@@ -358,3 +311,56 @@
     w.querySelector('#sos-close').addEventListener('click', ()=> w.remove());
   });
 
+
+// ===== УПРОЩЁННЫЕ МОБИЛЬНЫЕ СЦЕНАРИИ =====
+(function initMobileUx(){
+  const go = tabName => document.querySelector(`.tab[data-tab="${tabName}"]`)?.click();
+  const addTraining = () => {
+    go('today');
+    setTimeout(()=>{
+      const b=document.getElementById('add-session');
+      if(b) b.click();
+      document.getElementById('sessions-container')?.scrollIntoView({behavior:'smooth',block:'start'});
+    },80);
+  };
+  document.getElementById('quick-add-training')?.addEventListener('click', addTraining);
+  document.getElementById('quick-timer')?.addEventListener('click', ()=>go('timers'));
+  document.getElementById('quick-athletes')?.addEventListener('click', ()=>go('roster'));
+  document.getElementById('today-open-plan')?.addEventListener('click', ()=>document.getElementById('cal-grid')?.scrollIntoView({behavior:'smooth',block:'start'}));
+  document.getElementById('today-open-timer')?.addEventListener('click', ()=>go('timers'));
+  document.getElementById('today-start-training')?.addEventListener('click', addTraining);
+
+  document.getElementById('quick-attendance')?.addEventListener('click', ()=>{
+    go('today');
+    setTimeout(()=>document.getElementById('sessions-container')?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  });
+
+  document.querySelectorAll('.more-action[data-subtab]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.subtab)));
+  document.getElementById('more-search')?.addEventListener('click',()=>document.getElementById('global-search-fab')?.click());
+  document.getElementById('more-video-review')?.addEventListener('click',()=>document.getElementById('video-review-fab')?.click());
+
+  // Короткий тур при первом запуске. Регистрация не требуется.
+  let onboardingStep=0;
+  const modal=document.getElementById('onboarding');
+  const steps=[...document.querySelectorAll('.onboarding-step')];
+  const dots=[...document.querySelectorAll('.on-dot')];
+  const next=document.getElementById('onboarding-next');
+  const skip=document.getElementById('onboarding-skip');
+  const showStep=n=>{
+    onboardingStep=Math.max(0,Math.min(n,steps.length-1));
+    steps.forEach((s,i)=>s.classList.toggle('active',i===onboardingStep));
+    dots.forEach((d,i)=>d.classList.toggle('active',i===onboardingStep));
+    if(next) next.textContent=onboardingStep===steps.length-1?'Начать':'Далее';
+  };
+  const close=async()=>{
+    if(modal) modal.hidden=true;
+    try{await S.set('onboarding_v1','1');}catch(e){localStorage.setItem('judo_onboarding_v1','1');}
+  };
+  next?.addEventListener('click',()=> onboardingStep<steps.length-1 ? showStep(onboardingStep+1) : close());
+  skip?.addEventListener('click',close);
+  (async()=>{
+    let seen=false;
+    try{seen=!!(await S.get('onboarding_v1'));}catch(e){seen=localStorage.getItem('judo_onboarding_v1')==='1';}
+    if(!seen && modal){showStep(0); modal.hidden=false;}
+  })();
+})();

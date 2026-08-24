@@ -20,26 +20,26 @@
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
-  /* Светлая тема: спокойный нейтральный фон; красный — только акцент */
+  /* Новая основная тема 2026: белый фон, тёмно-синий как главный цвет, красный только для важных/критичных действий */
   [data-theme="light"]{
     color-scheme: light;
     --mat: #f3f5f9;
     --mat-2: #ffffff;
     --card: #ffffff;
     --line: #e2e6ef;
-    --belt-red: #a84f47;
-    --gold: #7b6858;
-    --navy: #8f4a47;
-    --white: #1d2328;
-    --dim: #5f6870;
-    --ok: #3f7652;
-    --shadow: 0 2px 14px rgba(30,35,40,.07);
+    --belt-red: #d1332c;
+    --gold: #101f3c;
+    --navy: #101f3c;
+    --white: #16213a;
+    --dim: #6d7690;
+    --ok: #2e7d46;
+    --shadow: 0 2px 14px rgba(16,31,60,.08);
     --radius: 16px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{margin:0;padding:0; overflow-x:hidden; width:100%; -webkit-tap-highlight-color:transparent; }
   body{
-    background: radial-gradient(1000px 500px at 20% -10%, #ffffff 0%, var(--mat) 58%), var(--mat);
+    background: radial-gradient(1200px 600px at 20% -10%, #223026 0%, var(--mat) 55%), var(--mat);
     color: var(--white);
     font-family: 'Inter', sans-serif;
     min-height:100vh;
@@ -91,7 +91,7 @@
   }
   .more-tile-ic{ font-size:22px; }
   /* ===== ГЛАВНЫЙ ЭКРАН "СЕГОДНЯ" ===== */
-  .today-hero{ background:linear-gradient(135deg, #111915 0%, #1b2920 62%, #242d26 100%); color:#fff; border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:var(--shadow); }
+  .today-hero{ background:linear-gradient(135deg, var(--navy,#101f3c), #1c2f57); color:#fff; border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:var(--shadow); }
   .today-hero .t-date{ font-size:12px; opacity:.75; text-transform:uppercase; letter-spacing:.08em; }
   .today-hero .t-title{ font-family:'Oswald'; font-size:20px; font-weight:700; margin:4px 0 12px; }
   .quick-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
@@ -570,106 +570,33 @@ body.modal-open{overflow:hidden;}
 }
 [data-theme="light"] .quick-group{ background:#f3f5f9 !important; color:#16213a !important; border-color:#d8deea !important; }
 
-/* ===== MOBILE UX 2026: крупные зоны нажатия и спокойный светлый акцент ===== */
-[data-theme="light"] .today-hero{
-  background:linear-gradient(135deg,#9e514d,#b86a65);
-}
-[data-theme="light"] .today-hero .btn.secondary{
-  background:rgba(255,255,255,.92); color:#252a2f; border-color:rgba(255,255,255,.75);
-}
-.bn-item{min-height:60px;padding:9px 3px 8px;font-size:11px;}
-.bn-item .bn-ic{font-size:19px;}
-.btn{min-height:52px;padding:11px 16px;}
-.quick-item{min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.card{transition:transform .16s ease,box-shadow .16s ease;}
-.attendance-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 8px;}
-.attendance-summary{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px;}
-.attendance-summary .att-stat{flex:1 1 90px;min-height:58px;border:1px solid var(--line);border-radius:12px;background:var(--mat-2);padding:9px 10px;}
-.att-stat .n{font-family:'Oswald';font-size:24px;font-weight:700;line-height:1;}
-.att-stat .l{font-size:10px;color:var(--dim);margin-top:4px;text-transform:uppercase;}
-.attendance-list{display:flex;flex-direction:column;gap:7px;}
-.attendance-person{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--mat-2);color:var(--white);cursor:pointer;touch-action:manipulation;}
-.attendance-person:active{transform:scale(.985);}
-.attendance-person .name{font-size:14px;font-weight:650;}
-.attendance-person .state{font-size:12px;font-weight:700;white-space:nowrap;}
-.attendance-person.att-present{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--mat-2));}
-.attendance-person.att-present .state{color:var(--ok);}
-.attendance-person.att-excused{border-color:var(--gold);}
-.attendance-person.att-excused .state{color:var(--gold);}
-.attendance-person.att-absent{border-color:var(--belt-red);background:color-mix(in srgb,var(--belt-red) 10%,var(--mat-2));}
-.attendance-person.att-absent .state{color:var(--belt-red);}
-.session-body{padding:0 12px 14px;}
-.session .session-head{min-height:58px;}
-@media(max-width:420px){
-  .app{padding-left:10px!important;padding-right:10px!important;}
-  .today-hero{padding:16px;}
-  .today-hero .t-title{font-size:22px;}
-  .quick-grid{grid-template-columns:1fr 1fr;gap:8px;}
-  .quick-item .q-ic{font-size:20px;}
-}
-@media(min-width:700px){.attendance-list{display:grid;grid-template-columns:1fr 1fr;}}
-
-/* ===== Первый запуск: короткий onboarding без обязательной регистрации ===== */
-.jc-onboarding{position:fixed;inset:0;z-index:1000;background:rgba(8,12,10,.78);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:14px;}
-.jc-onboarding[hidden]{display:none;}
-.jc-ob-sheet{width:min(520px,100%);background:var(--card);color:var(--white);border:1px solid var(--line);border-radius:24px;padding:22px 18px calc(18px + var(--safe-bottom));box-shadow:0 20px 60px rgba(0,0,0,.45);}
-.jc-ob-brand{display:flex;align-items:center;gap:10px;font-size:18px;margin-bottom:14px;}
-.jc-ob-brand .kanji{font-family:'JudoKanji';font-size:34px;color:var(--gold);line-height:1;}
-.jc-ob-progress{display:flex;gap:6px;margin-bottom:18px;}
-.jc-ob-progress span{height:4px;flex:1;border-radius:10px;background:var(--line);}
-.jc-ob-progress span.active{background:var(--belt-red);}
-.jc-ob-slide{display:none;min-height:250px;text-align:center;padding:8px 6px;}
-.jc-ob-slide.active{display:block;animation:fade .2s ease;}
-.jc-ob-icon{font-size:54px;margin:12px 0;}
-.jc-ob-slide h2{font-family:'Oswald';font-size:28px;line-height:1.05;margin:0 0 12px;}
-.jc-ob-slide p{font-size:15px;line-height:1.5;color:var(--dim);margin:0 auto;max-width:390px;}
-.jc-ob-actions{display:flex;gap:8px;margin-top:8px;}
-.jc-ob-actions .btn{flex:1;}
-@media(min-width:700px){.jc-onboarding{align-items:center;}.jc-ob-sheet{padding-bottom:22px;}}
-
-
-/* ===== JUDO COACH 4.3 — MOBILE-FIRST POLISH ===== */
-:root{
-  --accent: #b3312c;
-  --accent-soft: rgba(179,49,44,.14);
-  --touch: 52px;
-}
-.today-hero{position:relative;overflow:hidden;border:1px solid rgba(201,162,75,.18);}
-.today-hero::after{content:'柔道';position:absolute;right:10px;top:8px;font-family:'JudoKanji','Inter',sans-serif;font-size:72px;line-height:1;opacity:.07;pointer-events:none;}
-.quick-grid{grid-template-columns:repeat(4,1fr);gap:10px;}
-.quick-item{min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 5px;}
-.quick-item .q-ic{font-size:24px;}
-.quick-item .q-lbl{font-size:11.5px;}
-.bn-item{min-height:58px;padding:9px 2px 8px;font-size:10.5px;}
-.bn-item .bn-ic{font-size:21px;}
-.card{border-radius:18px;}
-.btn{min-height:var(--touch);padding:11px 16px;border-radius:14px;}
-.btn.small{min-height:44px;}
-input[type=text],input[type=number],input[type=date],input[type=time],input[type=tel],textarea,select{min-height:48px;border-radius:12px;}
-.session-head{min-height:58px;padding:11px 12px;}
-.session-del{min-width:44px;min-height:44px;}
-.cal-nav button{width:44px;height:44px;}
-.cal-day{min-height:42px;}
-.attendance-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-.attendance-list .chip{min-height:48px;display:flex;align-items:center;justify-content:center;padding:10px 8px;border-radius:13px;text-align:center;}
-@media (max-width:430px){
-  .app{padding-left:12px;padding-right:12px;}
-  .quick-grid{grid-template-columns:repeat(2,1fr);}
-  .today-hero .t-title{font-size:23px;}
-  .today-hero{padding:17px;}
-  .row2,.row3{grid-template-columns:1fr;}
-  .actions{display:grid;grid-template-columns:1fr;}
-  .actions .btn{width:100%;}
-}
-@media (min-width:700px){
-  .quick-grid{grid-template-columns:repeat(4,1fr);}
-  .attendance-list{grid-template-columns:repeat(3,minmax(0,1fr));}
-}
-[data-theme="light"] .today-hero{background:linear-gradient(135deg,#3b4740,#526057);color:#fff;border-color:#69776f;}
-[data-theme="light"] .btn:not(.secondary):not(.ghost){background:#8f4a47;}
-[data-theme="light"] .bn-item.active{color:#8f4a47;}
-[data-theme="light"] .tab.active{background:#8f4a47;}
-@media (prefers-contrast: more){
-  :root{--line:#5a6a60;--dim:#c0c9c0;}
-  [data-theme="light"]{--line:#7b8380;--dim:#424a46;}
-}
+/* ===== JUDO COACH MOBILE UX 2026 ===== */
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;padding:8px 2px 12px;border-bottom:1px solid var(--line)}
+.header-actions{display:flex;align-items:center;gap:6px;min-width:0}
+.today-hero{padding:20px 18px;border-radius:20px;background:linear-gradient(135deg,var(--navy),#344b3c);box-shadow:var(--shadow)}
+.today-hero .t-title{font-size:clamp(24px,6vw,30px);line-height:1.08;margin:5px 0 6px}
+.today-hero-sub{font-size:13px;color:rgba(255,255,255,.72)}
+.coach-actions{grid-template-columns:repeat(4,1fr);gap:9px}
+.quick-item{min-height:82px;padding:13px 5px;border-radius:16px;border:1px solid var(--line);color:var(--white);background:var(--card)}
+.quick-item .q-ic{font-size:22px;font-weight:700;color:var(--gold);margin-bottom:7px}
+.quick-item .q-lbl{font-size:12px;color:var(--white);line-height:1.15}
+.scenario-card{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.scenario-card .scenario-title{font-weight:800;font-size:15px}
+.scenario-card .scenario-text{font-size:12.5px;color:var(--dim);flex:1;line-height:1.35}
+.scenario-card .btn{flex-shrink:0}
+.more-head{padding:4px 2px 12px}.more-head h2{margin:2px 0 4px;font-size:28px}.more-kicker{font-size:10px;letter-spacing:.14em;color:var(--gold);font-weight:800}.more-caption{font-size:12.5px;color:var(--dim);max-width:560px}
+.more-section-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:8px;margin-bottom:10px;box-shadow:var(--shadow)}
+.more-section-title{padding:7px 9px 6px;font-size:11px;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.more-action{width:100%;display:flex;align-items:center;gap:11px;text-align:left;border:0;border-top:1px solid var(--line);background:transparent;color:var(--white);padding:13px 8px;min-height:58px;cursor:pointer;font:inherit}
+.more-action:first-of-type{border-top:0}.more-action:active{transform:scale(.99)}
+.more-action-icon{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--mat-2);color:var(--gold);font-weight:800;flex:0 0 32px}.more-action b{display:block;font-size:14px}.more-action small{display:block;color:var(--dim);font-size:11.5px;margin-top:2px}.more-arrow{margin-left:auto;color:var(--dim);font-size:22px}
+.onboarding{position:fixed;inset:0;z-index:1000;background:rgba(8,12,10,.78);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:12px}.onboarding[hidden]{display:none}
+.onboarding-sheet{width:min(520px,100%);background:var(--card);border:1px solid var(--line);border-radius:24px 24px 18px 18px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.4)}
+.onboarding-progress{display:flex;gap:6px;margin-bottom:18px}.on-dot{height:4px;flex:1;border-radius:4px;background:var(--line)}.on-dot.active{background:var(--gold)}
+.onboarding-step{display:none;min-height:260px;padding:8px 4px}.onboarding-step.active{display:block}.on-mark{font-family:'JudoKanji',sans-serif;font-size:54px;color:var(--gold);margin:20px 0 14px}.onboarding-step h2{font-size:27px;margin:0 0 8px}.onboarding-step p{font-size:15px;line-height:1.5;color:var(--dim);max-width:420px}.onboarding-actions{display:flex;gap:8px;justify-content:space-between}.onboarding-actions .btn{flex:1}
+[data-theme="light"] .today-hero{background:linear-gradient(135deg,#263f35,#486352)}
+[data-theme="light"] .quick-item .q-ic{color:#7b6a2d}
+[data-theme="light"]{--belt-red:#b85c58}
+@media(max-width:560px){.coach-actions{grid-template-columns:repeat(2,1fr)}.scenario-card{align-items:flex-start;flex-direction:column}.scenario-card .btn{width:100%}.app-header{padding-top:4px}.header .kanji{font-size:31px}.bottom-nav{min-height:64px}.bn-item{min-height:60px;font-size:10px}.bn-item .bn-ic{font-size:19px}.quick-item{min-height:78px}}
+@media(min-width:900px){.app{max-width:960px}.onboarding{align-items:center}.onboarding-sheet{border-radius:24px}}
+#global-search-fab,#video-review-fab{display:none !important}
