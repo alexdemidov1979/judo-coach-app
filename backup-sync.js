@@ -42,7 +42,7 @@
   async function buildDump(){
     const dump = {
       schemaVersion: 4,
-      appVersion: '4.0.0',
+      appVersion: '4.2.0',
       exportedAt: new Date().toISOString(),
       client: { platform: /Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'web' },
       user: {
@@ -71,6 +71,20 @@
       console.warn('Supabase cloud dump: unable to read local cache', e);
     }
     return dump;
+  }
+
+  async function clearLocalUserData(){
+    // При смене аккаунта полностью очищаем пользовательский локальный кэш.
+    // Иначе ключи, которых нет в облаке нового аккаунта, останутся на устройстве
+    // и будут видны новому пользователю. Служебные ключи приложения сохраняем.
+    const KEEP_KEYS = new Set(['data_schema_version','onboarding_v1']);
+    try {
+      const res = await S.list('');
+      const keys = ((res && res.keys) || []).filter(k => !KEEP_KEYS.has(k));
+      await Promise.all(keys.map(k => S.delete(k).catch(() => {})));
+    } catch (e) {
+      console.warn('Unable to clear local user data:', e);
+    }
   }
 
   async function applyDump(dump){
@@ -170,7 +184,7 @@
         if(!silent) alert('На сервере пока нет пользовательских данных.');
         return false;
       }
-      await applyDump({ schemaVersion: 4, appVersion: '4.0.0', data });
+      await applyDump({ schemaVersion: 4, appVersion: '4.2.0', data });
       localStorage.setItem('judo_last_sync', new Date().toISOString());
       setCloudStatus('Данные загружены', '🟢 Сервер');
       if(!silent) alert('Данные загружены с сервера.');
@@ -209,16 +223,18 @@
       }
       cloudInitializedForUid = currentCloudUser.uid;
       showCloudSignedIn(true);
-      setCloudStatus('Загружаем данные аккаунта из облака…', '🟡 Supabase');
+      setCloudStatus('Очищаем локальные данные предыдущего аккаунта…', '🟡 Сервер');
+      await clearLocalUserData();
+      setCloudStatus('Загружаем данные аккаунта с сервера…', '🟡 Сервер');
       try{
         const docs = await listCloudRows(currentCloudUser.uid);
         const realDocs = docs.filter(d => d.id !== encodeKey('__meta__'));
         if(realDocs.length){ await downloadFromCloud(true); }
-        else { setCloudStatus('Supabase готов (новый аккаунт, данных пока нет)', '🟢 Supabase Cloud'); }
+        else { setCloudStatus('Сервер готов (новый аккаунт, данных пока нет)', '🟢 Сервер'); }
         localStorage.setItem(OWNER_KEY, currentCloudUser.uid);
       }catch(e){
         console.error('Account switch sync failed:', e);
-        setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Supabase');
+        setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Сервер');
       }
       return;
     }
@@ -228,7 +244,7 @@
     showCloudSignedIn(true);
     const account = $('cloud-account');
     if(account) account.textContent = `👤 ${currentCloudUser.email || currentCloudUser.displayName || 'Пользователь'}`;
-    setCloudStatus('Проверяем Supabase…', '🟡 Supabase');
+    setCloudStatus('Проверяем сервер…', '🟡 Сервер');
 
     try{
       const docs = await listCloudRows(currentCloudUser.uid);
@@ -240,7 +256,7 @@
         if(localKeys.length){
           await uploadDumpToCloud(true);
         } else {
-          setCloudStatus('Supabase готов', '🟢 Supabase Cloud');
+          setCloudStatus('Сервер готов', '🟢 Сервер');
         }
       } else if(localKeys.length){
         // Do not silently destroy either copy. Ask once on first login to this device.
@@ -260,7 +276,7 @@
       }
     }catch(e){
       console.error('Supabase login sync failed:', e);
-      setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Supabase');
+      setCloudStatus('Вход выполнен. ' + friendlyNetworkError(e), '🟠 Сервер');
     }
   }
 
@@ -297,18 +313,9 @@
   function initUi(){
     $('export-btn')?.addEventListener('click', ()=>exportAllData(false));
 
-    $('main-firebase-signin')?.addEventListener('click', async ()=>{
-      try{
-        if(!window.JudoFirebase) throw new Error('Supabase ещё не инициализирован.');
-        const s=$('main-auth-status');
-        if(s) s.textContent='Открываем безопасный вход…';
-        await window.JudoFirebase.signIn();
-      }catch(e){
-        console.error('Main Supabase sign-in failed:', e);
-        const s=$('main-auth-status');
-        if(s) s.textContent='Ошибка входа: '+(e?.code || e?.message || 'неизвестная ошибка');
-        alert('Не удалось начать вход.\n\n'+(e?.code || '')+'\n'+(e?.message || e));
-      }
+    $('main-firebase-signin')?.addEventListener('click', ()=>{
+      document.getElementById('main-auth-card')?.scrollIntoView({behavior:'smooth',block:'center'});
+      document.getElementById('auth-login-email')?.focus();
     });
     $('main-firebase-signout')?.addEventListener('click', async ()=>{
       try{ await window.JudoFirebase?.signOut(); }catch(e){ alert('Не удалось выйти: '+(e?.message||e)); }
@@ -383,7 +390,7 @@
   });
   window.addEventListener('judo:firebase-auth-error', e=>{
     const err=e.detail||{};
-    setCloudStatus('Ошибка авторизации', '🔴 Supabase');
+    setCloudStatus('Ошибка авторизации', '🔴 Сервер');
     alert('Не удалось завершить вход.\n\n'+(err.message||err.code||'Неизвестная ошибка'));
   });
 

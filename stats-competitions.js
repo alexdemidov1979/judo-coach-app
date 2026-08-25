@@ -115,14 +115,13 @@
           alert('Сначала войдите в облачный аккаунт (Judo Coach Cloud) на главном экране — иначе заявки от родителей будет некому получать.');
           return;
         }
-        if(!sb){ alert('Supabase ещё не готов.'); return; }
+        if(!window.JudoCoachAPI){ alert('Сервер JudoCoach ещё не настроен.'); return; }
         const token = (crypto?.randomUUID ? crypto.randomUUID() : 'jc_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
-        const { error: tokenError } = await sb.from('competition_share_tokens').insert({
-          owner_uid: user.uid, token, competition_id: c.id || null, expires_at: null, is_active: true
-        });
-        if(tokenError){
-          console.error('Competition share token error:', tokenError);
-          alert('Не удалось создать защищённую ссылку. Выполните SQL из supabase/sql/competition_share_token.sql в Supabase.');
+        try {
+          await window.JudoCoachAPI.createCompetitionShare(token, c.id || null, null);
+        } catch (e) {
+          console.error('Competition share token error:', e);
+          alert('Не удалось создать защищённую ссылку: ' + (e?.message || e));
           return;
         }
         const url = new URL('comp-report.html', location.href);
@@ -205,15 +204,14 @@
     const el = document.getElementById('comp-reports-list');
     if(!el) return;
     const user = window.JudoFirebase?.getCurrentUser?.();
-    if(!user?.uid || !sb){
-      el.innerHTML = '<div class="empty-hint">Войдите в облачный аккаунт (Judo Coach Cloud) на главном экране, чтобы получать заявки от родителей.</div>';
+    if(!user?.uid || !window.JudoCoachAPI){
+      el.innerHTML = '<div class="empty-hint">Войдите в аккаунт и подключите сервер JudoCoach, чтобы получать заявки от родителей.</div>';
       return;
     }
     el.innerHTML = '<div class="empty-hint">Загружаю заявки…</div>';
-    const { data, error } = await sb.from('competition_reports')
-      .select('*').eq('owner_uid', user.uid).eq('status','pending')
-      .order('created_at', { ascending:false });
-    if(error){ el.innerHTML = '<div class="empty-hint">Не удалось загрузить заявки. Проверьте интернет.</div>'; return; }
+    let data;
+    try { data = (await window.JudoCoachAPI.getCompetitionReports()).filter(r => r.status === 'pending'); }
+    catch (error) { el.innerHTML = '<div class="empty-hint">Не удалось загрузить заявки. Проверьте интернет.</div>'; return; }
     if(!data || !data.length){ el.innerHTML = '<div class="empty-hint">Новых заявок нет.</div>'; return; }
     el.innerHTML = data.map(r=>`
       <div class="lib-item" style="padding:10px 12px;">
@@ -238,14 +236,14 @@
         comp.participants = comp.participants || [];
         comp.participants.push({ name: report.athlete_name, place: report.place || '', matches: report.matches ?? null, wins: report.wins ?? null, losses: report.losses ?? null });
         await setCompetitions(list);
-        await sb.from('competition_reports').update({ status:'approved' }).eq('id', report.id);
+        await window.JudoCoachAPI.setCompetitionReportStatus(report.id, 'approved');
         renderCompetitions();
       });
     });
     el.querySelectorAll('.comp-report-reject').forEach(b=>{
       b.addEventListener('click', async ()=>{
         if(!confirm('Отклонить эту заявку?')) return;
-        await sb.from('competition_reports').delete().eq('id', b.dataset.id);
+        await window.JudoCoachAPI.deleteCompetitionReport(b.dataset.id);
         renderCompReports();
       });
     });

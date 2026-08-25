@@ -4,16 +4,17 @@
  * client secrets/tokens must never be committed here.
  */
 export const APP_CONFIG = Object.freeze({
-  appVersion: '4.0.0',
-  schemaVersion: 2,
+  appVersion: '4.2.0',
+  schemaVersion: 4,
   product: 'Judo Coach',
   storage: {
     indexedDbName: 'judocoach_db',
     indexedDbStore: 'kv'
   },
   sync: {
-    provider: 'supabase',
+    provider: 'firstvds',
     table: 'user_data',
+    apiBase: '',
     offlineCache: true
   },
   video: {

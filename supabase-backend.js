@@ -1,7 +1,6 @@
-// ================= SUPABASE BACKEND (замена yandex-backend.js) =================
-// Сохраняет ТОТ ЖЕ публичный интерфейс window.JudoFirebase, которым
-// пользуются roster.js, backup-sync.js, firebase-auth-ui.js,
-// pro-features.js — поэтому их не пришлось переписывать.
+// ================= JUDOCOACH BACKEND =================
+// Единый backend-адаптер приложения. Legacy window.JudoFirebase сохранён
+// временно для совместимости до завершения миграции на FirstVDS.
 //
 // Заполните SUPABASE_URL и SUPABASE_ANON_KEY данными вашего проекта
 // (Supabase Dashboard → Project Settings → API). Оба значения публичные,
