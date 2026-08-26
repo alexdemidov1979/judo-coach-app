@@ -99,6 +99,12 @@
   // ================= НИЖНЯЯ НАВИГАЦИЯ (Сегодня/Техника/Спортсмены/План/Ещё) =================
   document.querySelectorAll('.bn-item').forEach(b=>{
     b.addEventListener('click', ()=>{
+      if(b.dataset.nav==='calendar'){
+        const todayTab=document.querySelector('.tab[data-tab="today"]');
+        if(todayTab) todayTab.click();
+        setTimeout(()=>scrollToCalendarSection(), 60);
+        return;
+      }
       const tab = document.querySelector('.tab[data-tab="'+b.dataset.nav+'"]');
       if(tab) tab.click();
     });
@@ -193,8 +199,8 @@
     if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
   }
 
-  document.getElementById('today-open-timer').addEventListener('click', ()=>document.querySelector('.tab[data-tab="timers"]').click());
-  document.getElementById('today-start-training').addEventListener('click', scrollToCalendarSection);
+  document.getElementById('today-open-timer')?.addEventListener('click', ()=>document.querySelector('.tab[data-tab="timers"]')?.click());
+  document.getElementById('today-start-training')?.addEventListener('click', scrollToCalendarSection);
 
   // ---------- Голосовая заметка (Web Speech API) ----------
   (function initVoiceNote(){
@@ -251,7 +257,7 @@
     else delete document.documentElement.dataset.theme;
     syncThemeColorMeta();
     if(saved === 'auto') setInterval(applyAutoTheme, 15*60*1000);
-    document.getElementById('theme-toggle').addEventListener('click', ()=>{
+    document.getElementById('theme-toggle')?.addEventListener('click', ()=>{
       // Клики циклически переключают: авто (по времени суток) → светлая → тёмная → авто...
       const cur = localStorage.getItem('app_theme') || 'auto';
       const order = ['auto','light','dark'];
@@ -263,6 +269,7 @@
       syncThemeColorMeta();
       const label = next==='auto' ? 'авто (по времени)' : next==='light' ? 'светлая' : 'тёмная';
       const btn = document.getElementById('theme-toggle');
+      if(!btn) return;
       btn.textContent = '🌓 Тема: ' + label;
       setTimeout(()=> btn.textContent = '🌓 Тема', 1500);
     });

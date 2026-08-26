@@ -600,3 +600,223 @@ body.modal-open{overflow:hidden;}
 @media(max-width:560px){.coach-actions{grid-template-columns:repeat(2,1fr)}.scenario-card{align-items:flex-start;flex-direction:column}.scenario-card .btn{width:100%}.app-header{padding-top:4px}.header .kanji{font-size:31px}.bottom-nav{min-height:64px}.bn-item{min-height:60px;font-size:10px}.bn-item .bn-ic{font-size:19px}.quick-item{min-height:78px}}
 @media(min-width:900px){.app{max-width:960px}.onboarding{align-items:center}.onboarding-sheet{border-radius:24px}}
 #global-search-fab,#video-review-fab{display:none !important}
+
+/* =========================================================
+   JUDOCOACH 4.2 — FINAL UI SYSTEM
+   Light / Dark, mobile-first, one-hand coach UX
+   ========================================================= */
+:root{
+  --jc-radius:18px;
+  --jc-blue:#2D6FE0;
+  --jc-blue-2:#4D8DF0;
+  --jc-purple:#7C4DFF;
+  --jc-purple-2:#8B5CF6;
+  --jc-dark:#0E0E12;
+  --jc-dark-card:#17171D;
+  --jc-dark-card-2:#1D1D25;
+  --jc-dark-line:#2B2B36;
+}
+
+/* Dark = premium graphite + violet */
+html:not([data-theme="light"]) body{
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(124,77,255,.18), transparent 60%),
+    radial-gradient(700px 420px at -10% 20%, rgba(45,111,224,.10), transparent 58%),
+    var(--jc-dark) !important;
+  color:#F6F5FA;
+}
+html:not([data-theme="light"]){
+  --mat:var(--jc-dark);
+  --mat-2:var(--jc-dark-card-2);
+  --card:var(--jc-dark-card);
+  --line:var(--jc-dark-line);
+  --white:#F6F5FA;
+  --dim:#A5A4B2;
+  --navy:var(--jc-purple);
+  --gold:var(--jc-purple-2);
+  --ok:#5EBD83;
+  --belt-red:#EF6A72;
+  --shadow:0 10px 28px rgba(0,0,0,.24);
+}
+
+/* Light = white → blue */
+[data-theme="light"] body{
+  background:
+    radial-gradient(900px 420px at 100% -15%, rgba(45,111,224,.20), transparent 62%),
+    linear-gradient(160deg,#F5F9FF 0%,#FFFFFF 46%,#EDF5FF 100%) !important;
+  color:#17233B;
+}
+[data-theme="light"]{
+  --mat:#F5F9FF;
+  --mat-2:#FFFFFF;
+  --card:#FFFFFF;
+  --line:#DCE5F2;
+  --white:#17233B;
+  --dim:#68758B;
+  --navy:var(--jc-blue);
+  --gold:var(--jc-blue);
+  --ok:#2D8A57;
+  --belt-red:#D9545D;
+  --shadow:0 10px 28px rgba(45,111,224,.10);
+}
+
+body,button,input,select,textarea{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+h1,h2,h3,.disp{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+.app{max-width:760px;padding-left:16px;padding-right:16px;}
+.card,.session,.tabs,.timer-tab,.palette-btn,.lib-item,.stat-box,.bulk-box,.constructor-block{border-radius:var(--jc-radius);}
+
+/* Header */
+.app-header{border-bottom:0;padding:8px 2px 10px;margin-bottom:10px;}
+.header .kanji{font-size:30px;color:var(--navy);}
+.header .sub{font-size:10px;letter-spacing:.12em;}
+#net-status-badge{background:rgba(45,111,224,.10)!important;color:var(--navy)!important;border:1px solid rgba(45,111,224,.16);}
+#sos-btn{background:var(--belt-red)!important;box-shadow:0 6px 14px rgba(217,84,93,.20);}
+
+/* Auth card */
+.jc-auth-card{border:1px solid var(--line)!important;box-shadow:var(--shadow);}
+.jc-auth-tab{border-radius:12px!important;border-color:var(--line)!important;background:var(--mat-2)!important;color:var(--white)!important;min-height:44px;}
+.jc-auth-tab.active{background:var(--navy)!important;color:#fff!important;}
+.jc-auth-form input,input,select,textarea{border-radius:12px!important;border-color:var(--line)!important;background:var(--mat-2)!important;color:var(--white)!important;min-height:44px;}
+.btn{border-radius:14px!important;min-height:44px;font-weight:750;}
+.btn:not(.ghost):not(.secondary):not(.danger):not(.gold){background:var(--navy)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 7px 16px rgba(45,111,224,.16);}
+html:not([data-theme="light"]) .btn:not(.ghost):not(.secondary):not(.danger):not(.gold){box-shadow:0 7px 18px rgba(124,77,255,.22);}
+.btn.ghost{background:transparent!important;border:1px solid var(--line)!important;color:var(--white)!important;}
+.btn.secondary{background:rgba(45,111,224,.10)!important;color:var(--navy)!important;border:1px solid rgba(45,111,224,.18)!important;}
+
+/* Today hero */
+.today-hero{border-radius:22px!important;padding:22px 20px!important;min-height:164px;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(135deg,#2D6FE0,#75A6F5)!important;box-shadow:0 18px 38px rgba(45,111,224,.20)!important;position:relative;overflow:hidden;}
+.today-hero:after{content:"";position:absolute;inset:auto -80px -90px auto;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.14);}
+html:not([data-theme="light"]) .today-hero{background:linear-gradient(135deg,#1A1730,#7C4DFF)!important;box-shadow:0 18px 40px rgba(124,77,255,.22)!important;}
+.today-hero>*{position:relative;z-index:1;}
+.today-hero .t-date{font-size:11px;opacity:.8;}
+.today-hero .t-title{font-size:28px;line-height:1.08;margin:6px 0 8px;}
+.today-hero-sub{font-size:13px;color:rgba(255,255,255,.80);}
+
+/* Quick actions */
+.coach-actions,.quick-grid{gap:10px;}
+.quick-item{min-height:82px;border-radius:18px!important;background:var(--card)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow)!important;}
+.quick-item .q-ic{color:var(--navy)!important;}
+.quick-item .q-lbl{color:var(--white)!important;font-weight:700;}
+.quick-item:active{transform:scale(.97);}
+.today-section-title{font-size:11px;letter-spacing:.12em;margin:20px 2px 9px;color:var(--dim);}
+
+/* Cards and lists */
+.card{box-shadow:var(--shadow);}
+.mini-card{border-radius:16px!important;background:var(--card)!important;border-color:var(--line)!important;box-shadow:var(--shadow)!important;}
+.mini-card .m-t{font-size:14px;}
+.mini-card .m-s{font-size:12px;}
+.chip,.badge,.cert-pill{border-radius:999px!important;}
+
+/* Bottom navigation + floating plus */
+.bottom-nav{height:70px;background:rgba(255,255,255,.92)!important;backdrop-filter:blur(18px);border-top:1px solid var(--line)!important;box-shadow:0 -10px 30px rgba(16,31,60,.10)!important;padding-bottom:var(--safe-bottom);}
+html:not([data-theme="light"]) .bottom-nav{background:rgba(14,14,18,.92)!important;box-shadow:0 -10px 30px rgba(0,0,0,.35)!important;}
+.bn-item{height:64px;min-height:64px;padding-top:7px;color:var(--dim)!important;font-family:Inter,system-ui,sans-serif;font-size:10px;font-weight:700;}
+.bn-item .bn-ic{font-size:20px;color:inherit;}
+.bn-item.active{color:var(--navy)!important;}
+.bn-item.active .bn-ic{transform:translateY(-1px) scale(1.08);}
+.jc-fab{position:fixed;left:50%;bottom:calc(38px + var(--safe-bottom));transform:translateX(-50%);z-index:70;width:58px;height:58px;border-radius:50%;border:4px solid var(--mat);background:var(--navy);color:#fff;font-size:32px;line-height:1;font-weight:300;box-shadow:0 12px 28px rgba(45,111,224,.32);cursor:pointer;display:grid;place-items:center;}
+html:not([data-theme="light"]) .jc-fab{box-shadow:0 12px 30px rgba(124,77,255,.36);}
+.jc-fab:active{transform:translateX(-50%) scale(.93);}
+
+/* More */
+.more-section-card{border-radius:18px!important;box-shadow:var(--shadow)!important;border-color:var(--line)!important;}
+.more-action{min-height:60px;color:var(--white)!important;}
+.more-action-icon{background:rgba(45,111,224,.10)!important;color:var(--navy)!important;border-radius:12px!important;}
+
+/* Onboarding */
+.onboarding{background:rgba(6,8,14,.88)!important;backdrop-filter:blur(10px);padding:0!important;align-items:stretch!important;}
+.onboarding-sheet{width:100%;max-width:none!important;height:100%;border:0!important;border-radius:0!important;padding:0!important;background:var(--mat)!important;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.onboarding-step{min-height:0!important;flex:1;padding:0!important;position:relative;display:none;overflow:hidden;}
+.onboarding-step.active{display:flex;flex-direction:column;justify-content:flex-end;padding:0 24px 24px!important;}
+.onboarding-step:before{content:"";position:absolute;inset:0 0 38% 0;background:radial-gradient(circle at 50% 30%,rgba(124,77,255,.30),transparent 58%),linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.55));}
+.onboarding-step[data-step="0"]:after{content:"柔道";position:absolute;inset:12% 0 auto;text-align:center;font-family:JudoKanji,serif;font-size:clamp(100px,30vw,190px);color:rgba(255,255,255,.10);}
+.on-mark{position:relative;z-index:2;font-size:20px!important;color:#fff!important;margin:0 0 12px!important;letter-spacing:.04em;}
+.onboarding-step h2,.onboarding-step p{position:relative;z-index:2;color:#fff!important;max-width:560px;}
+.onboarding-step h2{font-size:clamp(34px,9vw,54px)!important;line-height:1.02!important;margin-bottom:12px!important;}
+.onboarding-step p{font-size:16px!important;line-height:1.5!important;color:rgba(255,255,255,.76)!important;}
+.onboarding-progress{position:absolute;z-index:5;top:calc(18px + var(--safe-top));left:20px;right:20px;margin:0!important;}
+.on-dot{background:rgba(255,255,255,.22)!important;height:4px!important;}.on-dot.active{background:#fff!important;}
+.onboarding-actions{position:absolute;z-index:5;left:20px;right:20px;bottom:calc(18px + var(--safe-bottom));}
+.onboarding-actions .btn{min-height:50px;}
+.onboarding-actions .ghost{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.18)!important;color:#fff!important;}
+
+/* Splash */
+.jc-splash{position:fixed;inset:0;z-index:3000;overflow:hidden;background:#3A2A1D;color:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .55s ease,visibility .55s ease;}
+.jc-splash.is-hidden{opacity:0;visibility:hidden;pointer-events:none;}
+.jc-splash-photo{position:absolute;inset:0;background:
+  radial-gradient(ellipse at 52% 34%,rgba(224,190,145,.35),transparent 25%),
+  linear-gradient(165deg,#6d5138 0%,#3f2e21 46%,#201713 100%);}
+.jc-splash-photo:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 5px),repeating-linear-gradient(90deg,rgba(0,0,0,.035) 0 1px,transparent 1px 6px);opacity:.75;transform:rotate(-7deg) scale(1.2);}
+.jc-splash-belt{position:absolute;width:120%;height:64px;left:-10%;top:58%;transform:rotate(-8deg);background:linear-gradient(180deg,#BCA06F,#765A37 45%,#4A3523);box-shadow:0 18px 30px rgba(0,0,0,.35);}
+.jc-splash-weave{position:absolute;width:44%;height:48%;left:28%;top:18%;border-radius:40%;background:radial-gradient(ellipse,rgba(239,222,197,.28),transparent 67%);filter:blur(5px);}
+.jc-splash-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,8,5,.28),rgba(12,8,5,.72));}
+.jc-splash-content{position:relative;z-index:2;text-align:center;transform:translateY(-2vh);}
+.jc-splash-mark{font-family:JudoKanji,serif;font-size:28px;letter-spacing:.08em;opacity:.85;margin-bottom:12px;}
+.jc-splash-title{font-size:clamp(42px,12vw,72px);font-weight:800;letter-spacing:-.045em;line-height:.95;text-shadow:0 6px 28px rgba(0,0,0,.28);}
+.jc-splash-sub{margin-top:12px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.70);}
+.jc-splash-loader{position:absolute;z-index:2;left:18%;right:18%;bottom:calc(32px + var(--safe-bottom));height:3px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden;}
+.jc-splash-loader span{display:block;height:100%;width:42%;border-radius:4px;background:#fff;animation:jcLoad 1.2s ease-in-out infinite;}
+@keyframes jcLoad{0%{transform:translateX(-120%)}100%{transform:translateX(300%)}}
+
+/* Compact mobile spacing */
+@media(max-width:560px){
+  .app{padding-left:12px;padding-right:12px;}
+  .jc-auth-card{margin-left:0!important;margin-right:0!important;}
+  .today-hero{min-height:150px;padding:19px 17px!important;}
+  .today-hero .t-title{font-size:25px;}
+  .quick-grid,.coach-actions{grid-template-columns:repeat(2,1fr)!important;}
+  .jc-fab{width:56px;height:56px;font-size:30px;}
+}
+@media(min-width:700px){
+  .onboarding-step h2{font-size:54px!important;}
+}
+
+/* =========================================================
+   JUDOCOACH FINAL POLISH — supplied judogi splash + web shell
+   ========================================================= */
+.jc-splash-photo{
+  position:absolute;
+  inset:0;
+  background-image:url('assets/jc-splash-gi.jpg');
+  background-size:cover;
+  background-position:center center;
+  transform:scale(1.02);
+  filter:saturate(.82) contrast(1.03);
+}
+.jc-splash-overlay{
+  background:
+    linear-gradient(180deg,rgba(9,7,5,.18) 0%,rgba(9,7,5,.28) 42%,rgba(9,7,5,.78) 100%),
+    radial-gradient(circle at 50% 38%,rgba(255,255,255,.08),transparent 42%);
+}
+.jc-splash-content{transform:translateY(-3vh);}
+.jc-splash-mark{font-size:34px;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.55);}
+.jc-splash-title{font-size:clamp(44px,12vw,76px);text-shadow:0 6px 32px rgba(0,0,0,.6);}
+.jc-splash-sub{color:rgba(255,255,255,.84);text-shadow:0 2px 12px rgba(0,0,0,.55);}
+.jc-splash-loader{left:22%;right:22%;background:rgba(255,255,255,.24);}
+
+/* Desktop web version: same component system, expanded workspace. */
+@media(min-width:1100px){
+  body{min-height:100vh;}
+  .app{max-width:1180px!important;margin-left:214px!important;margin-right:28px!important;padding-top:26px!important;padding-bottom:40px!important;}
+  .bottom-nav{position:fixed!important;left:18px!important;top:18px!important;bottom:18px!important;right:auto!important;width:172px!important;height:auto!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:stretch!important;border:1px solid var(--line)!important;border-radius:24px!important;padding:18px 10px!important;box-shadow:var(--shadow)!important;}
+  .bn-item{width:100%!important;height:56px!important;min-height:56px!important;flex-direction:row!important;justify-content:flex-start!important;gap:12px!important;padding:0 14px!important;border-radius:14px!important;font-size:13px!important;}
+  .bn-item .bn-ic{font-size:21px!important;width:24px;text-align:center;}
+  .bn-item.active{background:color-mix(in srgb,var(--navy) 12%, transparent)!important;}
+  .jc-fab{left:104px!important;bottom:34px!important;width:58px;height:58px;}
+  .app-header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--mat) 88%, transparent);backdrop-filter:blur(18px);border-radius:18px;padding:12px 14px!important;}
+  .today-hero{min-height:190px!important;}
+  .coach-actions{grid-template-columns:repeat(4,1fr)!important;}
+  .today-hero .t-title{font-size:34px!important;}
+  .jc-auth-card{max-width:720px;}
+  .panel.active{max-width:1120px;margin:0 auto;}
+}
+
+/* Cleaner phone header and auth block */
+@media(max-width:700px){
+  .app{padding-top:calc(8px + var(--safe-top))!important;}
+  .app-header{padding:4px 2px 8px!important;}
+  .header .kanji{font-size:26px!important;}
+  .jc-auth-card{margin:8px 0 10px!important;padding:12px!important;}
+  .jc-auth-card .jc-auth-head{gap:8px;}
+  .jc-auth-card .jc-auth-form{gap:8px;}
+}
